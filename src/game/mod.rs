@@ -1,4 +1,5 @@
 pub mod card;
+pub mod animate;
 
 use bevy::prelude::*;
 use card::CardPlugin;
