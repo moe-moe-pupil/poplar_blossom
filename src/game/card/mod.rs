@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::{ecs::entity, prelude::*};
 mod animations;
 
@@ -23,6 +25,7 @@ pub struct CardBundle {
     pub card: Card,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub image_handle: Handle<Image>,
 }
 
 #[derive(Component)]
@@ -86,10 +89,7 @@ impl FromWorld for CardData {
             ..default()
         };
         Self {
-            mesh: meshes.add(Rectangle {
-                half_size: Vec2::new(Card::ASPECT_RATIO, 1.0) / 2.0,
-                ..default()
-            }),
+            mesh: meshes.add(Rectangle::new(Card::ASPECT_RATIO, 1.0)),
             card_base_material: materials.add(card_base_material),
         }
     }
@@ -100,13 +100,25 @@ impl CardData {}
 fn on_spawn_card(
     mut commands: Commands,
     card_data: Res<CardData>,
-    cards: Query<(Entity, &Card), Added<Card>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    cards: Query<(Entity, &Card, &Handle<Image>), Added<Card>>,
 ) {
-    for (entity, card) in &cards {
+    for (entity, card, image) in &cards {
         commands.entity(entity).with_children(|parent| {
             parent.spawn(PbrBundle {
                 material: card_data.card_base_material.clone(),
                 mesh: card_data.mesh.clone(),
+                ..default()
+            });
+
+            parent.spawn(PbrBundle {
+                mesh: card_data.mesh.clone(),
+                material: materials.add(StandardMaterial {
+                    base_color_texture: Some(image.clone()),
+                    alpha_mode: AlphaMode::Blend,
+                    ..default()
+                }),
+                transform: Transform::from_xyz(0.0, 0.0, 0.1),
                 ..default()
             });
         });
