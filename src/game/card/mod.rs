@@ -50,7 +50,7 @@ pub enum CardType {
     Creature,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct CardStats {
     pub toughness: isize,
     pub power: isize,
@@ -58,7 +58,7 @@ pub struct CardStats {
     pub toughness_max: isize,
 }
 
-#[derive(Serialize, Deserialize, Debug, TypePath, Asset)]
+#[derive(Serialize, Deserialize, Debug, TypePath, Asset, Clone)]
 pub struct CardInfo {
     pub name: String,
     pub desc: String,
@@ -110,5 +110,15 @@ fn on_spawn_card(
                 ..default()
             });
         });
+    }
+}
+
+impl From<CardInfo> for Card {
+    fn from(card_info: CardInfo) -> Self {
+        Self {
+            info: card_info,
+            animations: default(),
+            z: default(),
+        }
     }
 }

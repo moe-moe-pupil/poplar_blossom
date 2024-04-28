@@ -28,31 +28,16 @@ fn spawn_cards(
     card_infos: Res<Assets<CardInfo>>,
     mut state: ResMut<NextState<AppState>>,
 ) {
-    if asset_server.get_recursive_dependency_load_state(&cards.0) == 
-    Some(bevy::asset::RecursiveDependencyLoadState::Loaded) {
+    if asset_server.get_recursive_dependency_load_state(&cards.0)
+        == Some(bevy::asset::RecursiveDependencyLoadState::Loaded)
+    {
         for (_, card_info) in card_infos.iter() {
-            println!("{:?}", card_info)
+            commands.spawn(CardBundle {
+                transform: Transform::from_xyz(0.5, 0.0, 0.0),
+                global_transform: default(),
+                card: Card::from(card_info.clone()),
+            });
         }
         state.set(AppState::Playing);
-        // commands.spawn(CardBundle {
-        //     transform: Transform::from_xyz(0.5, 0.0, 0.0),
-        //     global_transform: default(),
-        //     card: Card {
-        //         animations: default(),
-        //         info: CardInfo {
-        //             card_type: card::CardType::Creature,
-        //             stats: CardStats {
-        //                 toughness: ISizeWithMax {
-        //                     current: 0,
-        //                     max: 10,
-        //                 },
-        //                 power: 0,
-        //             },
-        //             name: "hunman solider".into(),
-        //             desc: "death will".into(),
-        //         },
-        //         z: 0,
-        //     },
-        // });
     }
 }
