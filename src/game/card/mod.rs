@@ -2,9 +2,10 @@ use bevy::{ecs::entity, prelude::*};
 mod animations;
 
 use animations::Animations;
+use serde::{Deserialize, Serialize};
 pub struct CardPlugin;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ISizeWithMax {
     pub current: isize,
     pub max: isize,
@@ -43,19 +44,26 @@ impl Card {
     }
 }
 
-#[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum CardType {
     Creature,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CardStats {
-    pub toughness: ISizeWithMax,
-    pub power: ISizeWithMax,
+    pub toughness: isize,
+    pub power: isize,
+    #[serde(skip)]
+    pub toughness_max: isize,
 }
 
+#[derive(Serialize, Deserialize, Debug, TypePath, Asset)]
 pub struct CardInfo {
+    pub name: String,
+    pub desc: String,
     pub card_type: CardType,
+    #[serde(flatten)]
     pub stats: CardStats,
 }
 
