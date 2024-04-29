@@ -73,6 +73,7 @@ pub struct CardInfo {
 #[derive(Resource)]
 pub struct CardData {
     mesh: Handle<Mesh>,
+    portrait_mesh: Handle<Mesh>,
     card_base_material: Handle<StandardMaterial>,
 }
 
@@ -90,6 +91,7 @@ impl FromWorld for CardData {
         };
         Self {
             mesh: meshes.add(Rectangle::new(Card::ASPECT_RATIO, 1.0)),
+            portrait_mesh: meshes.add(Rectangle::new(Card::ART_ASPECT , 1.0)),
             card_base_material: materials.add(card_base_material),
         }
     }
@@ -112,13 +114,14 @@ fn on_spawn_card(
             });
 
             parent.spawn(PbrBundle {
-                mesh: card_data.mesh.clone(),
+                mesh: card_data.portrait_mesh.clone(),
                 material: materials.add(StandardMaterial {
                     base_color_texture: Some(image.clone()),
+                    unlit: true,
                     alpha_mode: AlphaMode::Blend,
                     ..default()
                 }),
-                transform: Transform::from_xyz(0.0, 0.0, 0.1),
+                transform: Transform::from_xyz(0.0, 0.0, 0.01),
                 ..default()
             });
         });

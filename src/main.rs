@@ -5,6 +5,10 @@ use game::{card::CardInfo, GamePlugin};
 
 fn main() {
     App::new()
+        .insert_resource(AmbientLight {
+            color: Color::WHITE,
+            brightness: 0.4,
+        })
         .add_plugins(DefaultPlugins)
         .add_plugins(CsvAssetPlugin::<CardInfo>::new(&["cards.csv"]))
         // .add_plugins(CardLoaderPlugin)
@@ -21,7 +25,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let cards = CardsHandle(asset_server.load("cards.csv"));
     commands.insert_resource(cards);
 }
-
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {

@@ -43,8 +43,8 @@ fn spawn_cards(
     {
         for (_, card_info) in card_infos.iter() {
             let size = Extent3d {
-                width: 512,
-                height: 512,
+                width: 256,
+                height: 256,
                 ..default()
             };
 
@@ -74,9 +74,9 @@ fn spawn_cards(
                         // render before the "main pass" camera
                         order: -1,
                         target: RenderTarget::Image(image_handle.clone()),
+                        clear_color: ClearColorConfig::None,
                         ..default()
                     },
-                    camera_2d: Camera2d {},
                     ..default()
                 })
                 .id();
@@ -84,14 +84,14 @@ fn spawn_cards(
             commands.spawn((
                 Text2dBundle {
                     text: Text::from_section(
-                        card_info.desc.clone(),
+                        card_info.name.clone(),
                         TextStyle {
-                            font_size: 64.0,
+                            font_size: 24.0,
                             color: Color::BLACK,
                             ..default()
                         },
                     ),
-                    transform: Transform::from_xyz(0.5, 64., 10.),
+                    transform: Transform::from_xyz(0., 95., 0.1),
                     ..default()
                 },
                 TargetCamera(texture_camera),
@@ -99,19 +99,19 @@ fn spawn_cards(
 
             commands.spawn((
                 SpriteBundle {
-                    texture: asset_server.load("card_base.png"),
-                    // transform: Transform::from_scale(Vec3::splat(1.)),
+                    texture: asset_server.load(card_info.name.clone() + ".png"),
                     sprite: Sprite {
-                        custom_size: Some(Vec2 { x: 512., y: 512. }),
+                        custom_size: Some(Vec2 { x: 185., y: 185. }),
                         ..Default::default()
                     },
+                    transform: Transform::from_xyz(0., -25., 0.1),
                     ..default()
                 },
                 TargetCamera(texture_camera),
             ));
 
             commands.spawn(CardBundle {
-                transform: Transform::from_xyz(0.5, 0.0, 0.0),
+                transform: Transform::from_xyz(0.5, 0.0, 0.1),
                 global_transform: default(),
                 card: Card::from(card_info.clone()),
                 image_handle,
