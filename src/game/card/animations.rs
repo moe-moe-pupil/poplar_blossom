@@ -5,10 +5,10 @@ use bevy::{prelude::Timer, time::TimerMode};
 use crate::game::animate::*;
 
 pub struct Animations {
-    select: AnimateRange,
-    deselect: AnimateRange,
-    attack_in: AnimateRange,
-    attack_out: AnimateRange,
+    pub select: AnimateRange,
+    pub deselect: AnimateRange,
+    pub attack_in: AnimateRange,
+    pub attack_out: AnimateRange,
 }
 
 impl Default for Animations {

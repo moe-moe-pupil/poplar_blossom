@@ -11,6 +11,7 @@ use bevy::{
         },
     },
 };
+use bevy_rapier3d::geometry::Collider;
 use card::{CardBundle, CardPlugin};
 
 use crate::{AppState, CardsHandle};
@@ -114,6 +115,7 @@ fn spawn_cards(
                 global_transform: default(),
                 card: Card::from(card_info.clone()),
                 image_handle,
+                collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
             });
         }
         state.set(AppState::Playing);

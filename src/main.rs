@@ -1,6 +1,7 @@
 mod game;
 use bevy::prelude::*;
 use bevy_common_assets::csv::{CsvAssetPlugin, LoadedCsv};
+use bevy_rapier3d::{plugin::{NoUserData, RapierPhysicsPlugin}, render::RapierDebugRenderPlugin};
 use game::{card::CardInfo, GamePlugin};
 
 fn main() {
@@ -10,6 +11,8 @@ fn main() {
             brightness: 0.4,
         })
         .add_plugins(DefaultPlugins)
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(CsvAssetPlugin::<CardInfo>::new(&["cards.csv"]))
         // .add_plugins(CardLoaderPlugin)
         .init_state::<AppState>()
