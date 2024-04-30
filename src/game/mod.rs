@@ -17,7 +17,7 @@ use crate::{AppState, CardsHandle};
 
 use self::{
     camera::PlayerCameraPlugin,
-    card::{Card, CardData, CardInfo, CardStats, ISizeWithMax},
+    card::{Card, CardInfo},
 };
 pub struct GamePlugin;
 
@@ -35,7 +35,6 @@ fn spawn_cards(
     asset_server: Res<AssetServer>,
     card_infos: Res<Assets<CardInfo>>,
     mut state: ResMut<NextState<AppState>>,
-    card_data: Res<CardData>,
     mut images: ResMut<Assets<Image>>,
 ) {
     if asset_server.get_recursive_dependency_load_state(&cards.0)
