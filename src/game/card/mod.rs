@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
-
 use bevy::{ecs::entity, prelude::*, window::PrimaryWindow};
+use std::cmp::{max, min};
+use std::f32::consts::TAU;
 mod animations;
 
 use animations::Animations;
@@ -87,15 +87,17 @@ fn move_cards(
     selected: Res<SelectedCard>,
     hover_point: Res<HoverPoint>,
     mut cards: Query<(Entity, &mut Card, &mut Transform)>,
-    mut transforms: Query<&Transform, Without<Card>>,
 ) {
     for (entity, mut card, mut transform) in &mut cards {
         let mut z_offset = 0.0;
         if selected.is_selected(entity) {
             z_offset += card.animations.select.tick(time.delta());
             if let HoverPoint::Some(hover_point) = *hover_point {
+                let delta_translation = (hover_point - transform.translation).xy() * 3.0;
                 transform.translation.x = hover_point.x;
                 transform.translation.y = hover_point.y;
+                transform.rotation.x = -delta_translation.y;
+                transform.rotation.y = delta_translation.x;
             }
         } else {
             z_offset += card.animations.deselect.tick(time.delta());

@@ -7,6 +7,7 @@ use crate::game::animate::*;
 pub struct Animations {
     pub select: AnimateRange,
     pub deselect: AnimateRange,
+    pub stop_drag_rotate: AnimateRange,
     pub attack_in: AnimateRange,
     pub attack_out: AnimateRange,
 }
@@ -19,6 +20,12 @@ impl Default for Animations {
                 Duration::from_secs_f32(0.2),
                 Ease::Linear,
                 0.5..0.0,
+                false,
+            ),
+            stop_drag_rotate: AnimateRange::new(
+                Duration::from_secs_f32(0.2),
+                Ease::InOutCirc,
+                1.0..0.0,
                 false,
             ),
             attack_in: AnimateRange::new(
