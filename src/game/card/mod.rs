@@ -1,6 +1,6 @@
 use bevy::{ecs::entity, prelude::*, window::PrimaryWindow};
 use std::cmp::{max, min};
-use std::f32::consts::TAU;
+use std::f32::consts::{PI, TAU};
 mod animations;
 
 use animations::Animations;
@@ -93,11 +93,15 @@ fn move_cards(
         if selected.is_selected(entity) {
             z_offset += card.animations.select.tick(time.delta());
             if let HoverPoint::Some(hover_point) = *hover_point {
-                let delta_translation = (hover_point - transform.translation).xy() * 3.0;
-                transform.translation.x = hover_point.x;
-                transform.translation.y = hover_point.y;
-                transform.rotation.x = -delta_translation.y;
-                transform.rotation.y = delta_translation.x;
+                let delta_translation = (hover_point - transform.translation).xy().clamp(
+                    -Vec2::new(PI / 10.0, PI / 10.0),
+                    Vec2::new(PI / 10.0, PI / 10.0),
+                );
+                println!("{:?}", delta_translation);
+                transform.translation.x = (hover_point.x + transform.translation.x) / 2.0;
+                transform.translation.y = (hover_point.y + transform.translation.y) / 2.0;
+                transform.rotation.x = (transform.rotation.x - delta_translation.y) / 2.0;
+                transform.rotation.y = (transform.rotation.y + delta_translation.x) / 2.0;
             }
         } else {
             z_offset += card.animations.deselect.tick(time.delta());
