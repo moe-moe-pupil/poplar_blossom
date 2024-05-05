@@ -1,4 +1,5 @@
 use bevy::{ecs::entity, prelude::*, window::PrimaryWindow};
+use meshtext::{MeshGenerator, MeshText, TextSection};
 use std::cmp::{max, min};
 use std::f32::consts::{PI, TAU};
 mod animations;
@@ -31,7 +32,6 @@ pub struct CardBundle {
     pub card: Card,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
-    pub image_handle: Handle<Image>,
     pub collider: Collider,
 }
 
@@ -97,7 +97,6 @@ fn move_cards(
                     -Vec2::new(PI / 10.0, PI / 10.0),
                     Vec2::new(PI / 10.0, PI / 10.0),
                 );
-                println!("{:?}", delta_translation);
                 transform.translation.x = (hover_point.x + transform.translation.x) / 2.0;
                 transform.translation.y = (hover_point.y + transform.translation.y) / 2.0;
                 transform.rotation.x = (transform.rotation.x - delta_translation.y) / 2.0;
@@ -222,7 +221,7 @@ impl FromWorld for CardData {
         };
         Self {
             mesh: meshes.add(Rectangle::new(Card::ASPECT_RATIO, 1.0)),
-            portrait_mesh: meshes.add(Rectangle::new(Card::ART_ASPECT, 1.0)),
+            portrait_mesh: meshes.add(Rectangle::new(Card::ART_ASPECT * 0.65, 0.65)),
             card_base_material: materials.add(card_base_material),
         }
     }
@@ -234,27 +233,71 @@ fn on_spawn_card(
     mut commands: Commands,
     card_data: Res<CardData>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    cards: Query<(Entity, &Card, &Handle<Image>), Added<Card>>,
+    cards: Query<(Entity, &Card), Added<Card>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
 ) {
-    for (entity, card, image) in &cards {
+    for (entity, card) in &cards {
         commands.entity(entity).with_children(|parent| {
-            parent.spawn(PbrBundle {
-                material: card_data.card_base_material.clone(),
-                mesh: card_data.mesh.clone(),
-                ..default()
-            });
+            parent
+                .spawn(SpatialBundle {
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    parent.spawn(PbrBundle {
+                        material: card_data.card_base_material.clone(),
+                        mesh: card_data.mesh.clone(),
+                        ..default()
+                    });
 
-            parent.spawn(PbrBundle {
-                mesh: card_data.portrait_mesh.clone(),
-                material: materials.add(StandardMaterial {
-                    base_color_texture: Some(image.clone()),
-                    unlit: true,
-                    alpha_mode: AlphaMode::Blend,
-                    ..default()
-                }),
-                transform: Transform::from_xyz(0.0, 0.0, 0.01),
-                ..default()
-            });
+                    parent.spawn(PbrBundle {
+                        mesh: card_data.portrait_mesh.clone(),
+                        material: materials.add(StandardMaterial {
+                            base_color_texture: Some(
+                                asset_server.load(card.info.name.clone() + ".png"),
+                            ),
+                            unlit: true,
+                            alpha_mode: AlphaMode::Blend,
+                            ..default()
+                        }),
+                        transform: Transform::from_xyz(0.0, -0.08, 0.01),
+                        ..default()
+                    });
+                    let font_data = include_bytes!("../../../assets/sans.ttf");
+                    let mut generator = MeshGenerator::new(font_data);
+                    let transform = Mat4::from_scale(Vec3::new(0.1, 0.1, 0.01)).to_cols_array();
+                    let text_mesh: MeshText = generator
+                        .generate_section(&card.info.name, false, Some(&transform))
+                        .unwrap();
+
+                    let vertices = text_mesh.vertices;
+                    let positions: Vec<[f32; 3]> =
+                        vertices.chunks(3).map(|c| [c[0], c[1], c[2]]).collect();
+                    let uvs = vec![[0f32, 0f32]; positions.len()];
+
+                    let mut mesh = Mesh::new(
+                        bevy::render::render_resource::PrimitiveTopology::TriangleList,
+                        default(),
+                    );
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+                    mesh.compute_flat_normals();
+
+                    parent
+                        // use this bundle to change the rotation pivot to the center
+                        .spawn(PbrBundle {
+                            mesh: meshes.add(mesh),
+                            material: materials.add(StandardMaterial {
+                                unlit: true,
+                                // alpha_mode: AlphaMode::Blend,
+                                base_color: Color::BLACK,
+                                ..default()
+                            }),
+                            // transform mesh so that it is in the center
+                            transform: Transform::from_xyz(-0.33, 0.35, 0.03),
+                            ..Default::default()
+                        });
+                });
         });
     }
 }

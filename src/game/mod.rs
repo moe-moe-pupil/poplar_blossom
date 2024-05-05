@@ -42,79 +42,10 @@ fn spawn_cards(
         == Some(bevy::asset::RecursiveDependencyLoadState::Loaded)
     {
         for (_, card_info) in card_infos.iter() {
-            let size = Extent3d {
-                width: 256,
-                height: 256,
-                ..default()
-            };
-
-            // This is the texture that will be rendered to.
-            let mut image = Image {
-                texture_descriptor: TextureDescriptor {
-                    label: None,
-                    size,
-                    dimension: TextureDimension::D2,
-                    format: TextureFormat::Bgra8UnormSrgb,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    usage: TextureUsages::TEXTURE_BINDING
-                        | TextureUsages::COPY_DST
-                        | TextureUsages::RENDER_ATTACHMENT,
-                    view_formats: &[],
-                },
-                ..default()
-            };
-
-            // fill image.data with zeroes
-            image.resize(size);
-            let image_handle = images.add(image);
-            let texture_camera = commands
-                .spawn(Camera2dBundle {
-                    camera: Camera {
-                        // render before the "main pass" camera
-                        order: -1,
-                        target: RenderTarget::Image(image_handle.clone()),
-                        clear_color: ClearColorConfig::None,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .id();
-
-            commands.spawn((
-                Text2dBundle {
-                    text: Text::from_section(
-                        card_info.name.clone(),
-                        TextStyle {
-                            font_size: 24.0,
-                            color: Color::BLACK,
-                            ..default()
-                        },
-                    ),
-                    transform: Transform::from_xyz(0., 95., 0.1),
-                    ..default()
-                },
-                TargetCamera(texture_camera),
-            ));
-
-            commands.spawn((
-                SpriteBundle {
-                    texture: asset_server.load(card_info.name.clone() + ".png"),
-                    sprite: Sprite {
-                        custom_size: Some(Vec2 { x: 185., y: 185. }),
-                        ..Default::default()
-                    },
-                    transform: Transform::from_xyz(0., -25., 0.1),
-                    ..default()
-                },
-                TargetCamera(texture_camera),
-            ));
-
             commands.spawn(CardBundle {
                 transform: Transform::from_xyz(0.5, 0.0, 0.1),
                 global_transform: default(),
                 card: Card::from(card_info.clone()),
-                image_handle,
                 collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
             });
         }

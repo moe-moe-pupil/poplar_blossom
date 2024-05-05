@@ -1,2 +1,3 @@
 name,card_type,power,toughness,desc
-human soldier,creature,5,10,soldier
+human soldier,creature,1,1,soldier
+zombie,creature,1,10,zombie
