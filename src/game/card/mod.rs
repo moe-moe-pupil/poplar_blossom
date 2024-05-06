@@ -160,8 +160,10 @@ pub fn select_card(
             if let Some((entity, _toi)) = result {
                 if cards.get(entity).unwrap().is_player_controlled() {
                     let mut card = cards.get_mut(entity).unwrap();
+                    let percent = 1.0 - card.animations.deselect.percent();
                     // unslot from tile
                     card.animations.select.reset();
+                    card.animations.select.set_percent(percent);
                     *selected_card = SelectedCard::Some(entity);
                 }
             }
@@ -171,7 +173,10 @@ pub fn select_card(
     if mouse.just_released(MouseButton::Left) {
         if let SelectedCard::Some(entity) = *selected_card {
             let mut card = cards.get_mut(entity).unwrap();
+            let diff_percent = 1.0 - card.animations.select.percent();
             card.animations.deselect.reset();
+            println!("percent: {:?}", diff_percent);
+            card.animations.deselect.set_percent(diff_percent);
             *selected_card = SelectedCard::None;
         }
     }

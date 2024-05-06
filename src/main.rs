@@ -14,7 +14,6 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(CsvAssetPlugin::<CardInfo>::new(&["cards.csv"]))
-        // .add_plugins(CardLoaderPlugin)
         .init_state::<AppState>()
         .add_systems(Startup, setup)
         .add_plugins(GamePlugin)

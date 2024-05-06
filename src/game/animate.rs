@@ -46,6 +46,10 @@ impl AnimateRange {
         self.timer.finished()
     }
 
+    pub fn set_range(&mut self, range: Range<f32>) {
+        self.range = range
+    }
+
     pub fn tick(&mut self, delta: Duration) -> f32 {
         self.timer.tick(delta);
         let amount = self.ease.ease(self.timer.fraction());
