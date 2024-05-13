@@ -89,6 +89,7 @@ pub fn move_camera(
             Ease::Linear,
             transform.translation.z..target_z,
             false,
+            None,
         );
         transform.translation.z = animation.tick(time.delta());
     }

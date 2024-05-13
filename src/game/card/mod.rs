@@ -1,7 +1,9 @@
 use bevy::{ecs::entity, prelude::*, window::PrimaryWindow};
+use bevy_rapier3d::na::ComplexField;
 use meshtext::{MeshGenerator, MeshText, TextSection};
 use std::cmp::{max, min};
 use std::f32::consts::{PI, TAU};
+use std::time::Duration;
 mod animations;
 
 use animations::Animations;
@@ -93,19 +95,29 @@ fn move_cards(
         if selected.is_selected(entity) {
             z_offset += card.animations.select.tick(time.delta());
             if let HoverPoint::Some(hover_point) = *hover_point {
-                let delta_translation = (hover_point - transform.translation).xy().clamp(
-                    -Vec2::new(PI / 10.0, PI / 10.0),
-                    Vec2::new(PI / 10.0, PI / 10.0),
-                );
+                let delta_translation = (hover_point - transform.translation).xy();
                 transform.translation.x = (hover_point.x + transform.translation.x) / 2.0;
                 transform.translation.y = (hover_point.y + transform.translation.y) / 2.0;
-                transform.rotation.x = (transform.rotation.x - delta_translation.y) / 2.0;
-                transform.rotation.y = (transform.rotation.y + delta_translation.x) / 2.0;
+                transform.rotation.x = card
+                    .animations
+                    .rotate_x
+                    .tick_f32(delta_translation.y * -0.1);
+                transform.rotation.y = card.animations.rotate_y.tick_f32(delta_translation.x * 0.1);
             }
         } else {
-            z_offset += card.animations.deselect.tick(time.delta());
+            z_offset += card
+                .animations
+                .select
+                .reverse_tick(time.delta().mul_f32(2.0));
         }
-
+        transform.rotation.x = card
+            .animations
+            .rotate_x
+            .reverse_tick(time.delta().mul_f32(0.5));
+        transform.rotation.y = card
+            .animations
+            .rotate_y
+            .reverse_tick(time.delta().mul_f32(0.5));
         transform.translation.z = z_offset;
     }
 }
@@ -156,14 +168,9 @@ pub fn select_card(
 
         if mouse.just_pressed(MouseButton::Left) {
             let result = context.cast_ray(near, direction, 50.0, true, QueryFilter::new());
-
             if let Some((entity, _toi)) = result {
                 if cards.get(entity).unwrap().is_player_controlled() {
-                    let mut card = cards.get_mut(entity).unwrap();
-                    let percent = 1.0 - card.animations.deselect.percent();
                     // unslot from tile
-                    card.animations.select.reset();
-                    card.animations.select.set_percent(percent);
                     *selected_card = SelectedCard::Some(entity);
                 }
             }
@@ -172,11 +179,6 @@ pub fn select_card(
 
     if mouse.just_released(MouseButton::Left) {
         if let SelectedCard::Some(entity) = *selected_card {
-            let mut card = cards.get_mut(entity).unwrap();
-            let diff_percent = 1.0 - card.animations.select.percent();
-            card.animations.deselect.reset();
-            println!("percent: {:?}", diff_percent);
-            card.animations.deselect.set_percent(diff_percent);
             *selected_card = SelectedCard::None;
         }
     }
@@ -265,7 +267,7 @@ fn on_spawn_card(
                             alpha_mode: AlphaMode::Blend,
                             ..default()
                         }),
-                        transform: Transform::from_xyz(0.0, -0.08, 0.01),
+                        transform: Transform::from_xyz(0.0, -0.08, 0.03),
                         ..default()
                     });
                     let font_data = include_bytes!("../../../assets/sans.ttf");

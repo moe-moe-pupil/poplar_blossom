@@ -1,4 +1,4 @@
-use std::{ops::Range, time::Duration};
+use std::{f32::consts::PI, ops::Range, time::Duration};
 
 use bevy::{prelude::Timer, time::TimerMode};
 
@@ -6,39 +6,33 @@ use crate::game::animate::*;
 
 pub struct Animations {
     pub select: AnimateRange,
-    pub deselect: AnimateRange,
-    pub rotate: AnimateRange,
-    pub attack_in: AnimateRange,
-    pub attack_out: AnimateRange,
+    pub rotate_x: AnimateRange,
+    pub rotate_y: AnimateRange,
 }
 
 impl Default for Animations {
     fn default() -> Self {
         Self {
-            select: AnimateRange::new(Duration::from_secs_f32(0.2), Ease::Linear, 0.0..4.0, false),
-            deselect: AnimateRange::new(
+            select: AnimateRange::new(
                 Duration::from_secs_f32(0.2),
                 Ease::Linear,
-                4.0..0.0,
+                0.0..4.0,
                 false,
+                None,
             ),
-            rotate: AnimateRange::new(
-                Duration::from_secs_f32(0.2),
-                Ease::InOutCirc,
-                1.0..0.0,
-                false,
-            ),
-            attack_in: AnimateRange::new(
+            rotate_x: AnimateRange::new(
                 Duration::from_secs_f32(0.2),
                 Ease::Linear,
-                1.0..1.5,
+                0.0..PI / 16.0,
                 false,
+                Some(1.0),
             ),
-            attack_out: AnimateRange::new(
+            rotate_y: AnimateRange::new(
                 Duration::from_secs_f32(0.2),
                 Ease::Linear,
-                1.5..1.0,
+                0.0..PI / 16.0,
                 false,
+                Some(1.0),
             ),
         }
     }
