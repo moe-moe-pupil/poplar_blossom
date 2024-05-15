@@ -2,7 +2,10 @@ pub mod animate;
 pub mod camera;
 pub mod card;
 
+use std::f32::consts::PI;
+
 use bevy::{
+    pbr::CascadeShadowConfigBuilder,
     prelude::*,
     render::{
         camera::RenderTarget,
@@ -26,8 +29,46 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(CardPlugin)
             .add_plugins(PlayerCameraPlugin)
+            .add_systems(Startup, set_up)
             .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));
     }
+}
+
+fn set_up(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: light_consts::lux::OVERCAST_DAY,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 2.0),
+            rotation: Quat::from_rotation_x(0.0),
+            ..default()
+        },
+        // The default cascade config is designed to handle large scenes.
+        // As this example has a much smaller world, we can tighten the shadow
+        // bounds for better visual quality.
+        cascade_shadow_config: CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 4.0,
+            maximum_distance: 10.0,
+            ..default()
+        }
+        .into(),
+        ..default()
+    });
+    // ground plane
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Plane3d::default().mesh().size(50., 50.)),
+        material: materials.add(Color::SILVER),
+        transform: Transform::from_rotation(Quat::from_rotation_x(PI / 2.0))
+            .with_translation(Vec3::new(0.0, 0.0, -0.1)),
+        ..default()
+    });
 }
 
 fn spawn_cards(
