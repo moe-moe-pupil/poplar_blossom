@@ -1,9 +1,5 @@
-use bevy::{ecs::entity, prelude::*, window::PrimaryWindow};
-use bevy_rapier3d::na::ComplexField;
+use bevy::{prelude::*, window::PrimaryWindow};
 use meshtext::{MeshGenerator, MeshText, TextSection};
-use std::cmp::{max, min};
-use std::f32::consts::{PI, TAU};
-use std::time::Duration;
 mod animations;
 
 use animations::Animations;
@@ -41,7 +37,6 @@ pub struct CardBundle {
 pub struct Card {
     pub animations: Animations,
     pub info: CardInfo,
-    pub z: usize,
     pub player_id: usize,
 }
 
@@ -123,21 +118,18 @@ fn move_cards(
 }
 
 pub fn select_card(
-    mut commands: Commands,
     context: Res<RapierContext>,
     windows: Query<&Window, With<PrimaryWindow>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut selected_card: ResMut<SelectedCard>,
     mut hover_point: ResMut<HoverPoint>,
     cameras: Query<(&Camera, &Transform), With<PlayerCamera>>,
-    mut cards: Query<&mut Card>,
+    cards: Query<(&mut Card, &Transform)>,
 ) {
     let window = windows.single();
     if let Some(cursor) = window.cursor_position() {
         let (camera, camera_transform) = cameras.single();
-
         let view = camera_transform.compute_matrix();
-
         let Rect {
             min: viewport_min,
             max: viewport_max,
@@ -154,22 +146,27 @@ pub fn select_card(
         let near = ndc_to_world.project_point3(cursor_ndc.extend(near_ndc));
         let far = ndc_to_world.project_point3(cursor_ndc.extend(far_ndc));
         let direction = far - near;
-        let denom = Vec3::Z.dot(direction);
-        if denom.abs() > 0.0001 {
-            let t = (Vec3::ZERO - near).dot(Vec3::Z) / denom;
-            if t >= 0.0 {
-                *hover_point = HoverPoint::Some(near + direction * t);
+        if let SelectedCard::Some(entity) = selected_card.as_ref() {
+            let (_card, transfrom) = cards.get(entity.clone()).unwrap();
+
+            let denom = Vec3::Z.dot(direction);
+            if denom.abs() > 0.0001 {
+                let t = ((Vec3::ZERO - near).dot(Vec3::Z) + transfrom.translation.z) / denom;
+                if t >= 0.0 {
+                    *hover_point = HoverPoint::Some(near + direction * t);
+                } else {
+                    *hover_point = HoverPoint::None;
+                }
             } else {
                 *hover_point = HoverPoint::None;
             }
-        } else {
-            *hover_point = HoverPoint::None;
         }
 
         if mouse.just_pressed(MouseButton::Left) {
             let result = context.cast_ray(near, direction, 50.0, true, QueryFilter::new());
             if let Some((entity, _toi)) = result {
-                if cards.get(entity).unwrap().is_player_controlled() {
+                let (card, _transfrom) = cards.get(entity).unwrap();
+                if card.is_player_controlled() {
                     // unslot from tile
                     *selected_card = SelectedCard::Some(entity);
                 }
@@ -178,7 +175,7 @@ pub fn select_card(
     }
 
     if mouse.just_released(MouseButton::Left) {
-        if let SelectedCard::Some(entity) = *selected_card {
+        if let SelectedCard::Some(_entity) = *selected_card {
             *selected_card = SelectedCard::None;
         }
     }
@@ -315,7 +312,6 @@ impl From<CardInfo> for Card {
             info: card_info,
             player_id: 0,
             animations: default(),
-            z: default(),
         }
     }
 }

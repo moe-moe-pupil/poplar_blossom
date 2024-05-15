@@ -1,7 +1,6 @@
 use std::{ops::Range, time::Duration};
 
 use bevy::{prelude::Timer, time::TimerMode};
-use bevy_rapier3d::na::ComplexField;
 
 pub struct AnimateRange {
     timer: Timer,
