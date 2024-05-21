@@ -46,7 +46,7 @@ fn set_up(
             ..default()
         },
         transform: Transform {
-            translation: Vec3::new(0.0, 0.0, 2.0),
+            translation: Vec3::new(0.0, 0.0, 1.0),
             rotation: Quat::from_rotation_x(0.0),
             ..default()
         },

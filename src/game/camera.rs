@@ -28,7 +28,7 @@ fn setup_camera(mut commands: Commands) {
     commands
         .spawn(Camera3dBundle {
             transform: Transform {
-                translation: Vec3::new(0.0, -1.5, 8.0),
+                translation: Vec3::new(0.0, -1.5, 4.0),
                 rotation: Quat::from_rotation_x(0.2),
                 ..default()
             },
@@ -83,7 +83,7 @@ pub fn move_camera(
         }
         transform.translation += direction * camera.base_speed * time.delta_seconds();
 
-        let target_z = 8.0 + *view_height as f32 * 3.0;
+        let target_z = 5.0 + *view_height as f32 * 3.0;
         let mut animation = AnimateRange::new(
             Duration::from_secs_f32(0.2),
             Ease::Linear,

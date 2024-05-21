@@ -1,5 +1,5 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use meshtext::{MeshGenerator, MeshText, TextSection};
+use meshtext::{error::MeshTextError, MeshGenerator, MeshText, TextSection};
 mod animations;
 
 use animations::Animations;
@@ -267,7 +267,7 @@ fn on_spawn_card(
                         transform: Transform::from_xyz(0.0, -0.08, 0.03),
                         ..default()
                     });
-                    let font_data = include_bytes!("../../../assets/sans.ttf");
+                    let font_data = include_bytes!("../../../assets/han_rounded.ttf");
                     let mut generator = MeshGenerator::new(font_data);
                     let transform = Mat4::from_scale(Vec3::new(0.1, 0.1, 0.01)).to_cols_array();
                     let text_mesh: MeshText = generator

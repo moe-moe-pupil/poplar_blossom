@@ -2,6 +2,7 @@ use std::{ops::Range, time::Duration};
 
 use bevy::{prelude::Timer, time::TimerMode};
 
+#[derive(Clone)]
 pub struct AnimateRange {
     timer: Timer,
     ease: Ease,
