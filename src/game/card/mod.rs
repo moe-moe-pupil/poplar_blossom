@@ -198,6 +198,7 @@ pub struct CardStats {
 #[derive(Serialize, Deserialize, Debug, TypePath, Asset, Clone)]
 pub struct CardInfo {
     pub name: String,
+    pub name_ZH: String,
     pub desc: String,
     pub card_type: CardType,
     #[serde(flatten)]
@@ -209,6 +210,7 @@ pub struct CardData {
     mesh: Handle<Mesh>,
     portrait_mesh: Handle<Mesh>,
     card_base_material: Handle<StandardMaterial>,
+    card_font_material: Handle<StandardMaterial>,
 }
 
 impl FromWorld for CardData {
@@ -223,15 +225,44 @@ impl FromWorld for CardData {
             base_color_texture: Some(asset_server.load("card_base.png")),
             ..default()
         };
+        let card_font_material = StandardMaterial {
+            unlit: true,
+            // alpha_mode: AlphaMode::Blend,
+            base_color: Color::BLACK,
+            ..default()
+        };
         Self {
             mesh: meshes.add(Rectangle::new(Card::ASPECT_RATIO, 1.0)),
             portrait_mesh: meshes.add(Rectangle::new(Card::ART_ASPECT * 0.65, 0.65)),
             card_base_material: materials.add(card_base_material),
+            card_font_material: materials.add(card_font_material),
         }
     }
 }
 
 impl CardData {}
+
+const FONT_DATA: &[u8] = include_bytes!("../../../assets/han_rounded.ttf");
+fn generate_text_mesh(text: &str) -> Mesh {
+    let mut generator = MeshGenerator::new(&FONT_DATA);
+    let transform = Mat4::from_scale(Vec3::new(0.1, 0.1, 0.01)).to_cols_array();
+    let text_mesh: MeshText = generator
+        .generate_section(text, false, Some(&transform))
+        .unwrap();
+
+    let vertices = text_mesh.vertices;
+    let positions: Vec<[f32; 3]> = vertices.chunks(3).map(|c| [c[0], c[1], c[2]]).collect();
+    let uvs = vec![[0f32, 0f32]; positions.len()];
+
+    let mut mesh = Mesh::new(
+        bevy::render::render_resource::PrimitiveTopology::TriangleList,
+        default(),
+    );
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.compute_flat_normals();
+    mesh
+}
 
 fn on_spawn_card(
     mut commands: Commands,
@@ -267,40 +298,42 @@ fn on_spawn_card(
                         transform: Transform::from_xyz(0.0, -0.08, 0.03),
                         ..default()
                     });
-                    let font_data = include_bytes!("../../../assets/han_rounded.ttf");
-                    let mut generator = MeshGenerator::new(font_data);
-                    let transform = Mat4::from_scale(Vec3::new(0.1, 0.1, 0.01)).to_cols_array();
-                    let text_mesh: MeshText = generator
-                        .generate_section(&card.info.name, false, Some(&transform))
-                        .unwrap();
-
-                    let vertices = text_mesh.vertices;
-                    let positions: Vec<[f32; 3]> =
-                        vertices.chunks(3).map(|c| [c[0], c[1], c[2]]).collect();
-                    let uvs = vec![[0f32, 0f32]; positions.len()];
-
-                    let mut mesh = Mesh::new(
-                        bevy::render::render_resource::PrimitiveTopology::TriangleList,
-                        default(),
-                    );
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                    mesh.compute_flat_normals();
-
+                    let name_mesh = generate_text_mesh(&card.info.name_ZH);
+                    let toughness_mesh = generate_text_mesh(&card.info.stats.toughness.to_string());
+                    let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
                     parent
                         // use this bundle to change the rotation pivot to the center
                         .spawn(PbrBundle {
-                            mesh: meshes.add(mesh),
-                            material: materials.add(StandardMaterial {
-                                unlit: true,
-                                // alpha_mode: AlphaMode::Blend,
-                                base_color: Color::BLACK,
-                                ..default()
-                            }),
+                            mesh: meshes.add(name_mesh),
+                            material: card_data.card_font_material.clone(),
                             // transform mesh so that it is in the center
                             transform: Transform::from_xyz(-0.33, 0.35, 0.03),
                             ..Default::default()
                         });
+                    [
+                        (power_mesh, 1.0, card.info.stats.power.to_string().len()),
+                        (
+                            toughness_mesh,
+                            -1.0,
+                            card.info.stats.toughness.to_string().len(),
+                        ),
+                    ]
+                    .map(|(mesh, dir, len)| {
+                        parent
+                            // use this bundle to change the rotation pivot to the center
+                            .spawn(PbrBundle {
+                                mesh: meshes.add(mesh),
+                                material: card_data.card_font_material.clone(),
+                                // transform mesh so that it is in the center
+                                transform: Transform::from_xyz(
+                                    -0.4 * dir - len as f32 * 0.04,
+                                    -0.45,
+                                    0.03,
+                                )
+                                .with_scale(Vec3::new(2.0, 2.0, 1.0)),
+                                ..Default::default()
+                            });
+                    });
                 });
         });
     }
