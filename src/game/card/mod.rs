@@ -198,7 +198,7 @@ pub struct CardStats {
 #[derive(Serialize, Deserialize, Debug, TypePath, Asset, Clone)]
 pub struct CardInfo {
     pub name: String,
-    pub name_ZH: String,
+    pub name_zh: String,
     pub desc: String,
     pub card_type: CardType,
     #[serde(flatten)]
@@ -298,7 +298,7 @@ fn on_spawn_card(
                         transform: Transform::from_xyz(0.0, -0.08, 0.03),
                         ..default()
                     });
-                    let name_mesh = generate_text_mesh(&card.info.name_ZH);
+                    let name_mesh = generate_text_mesh(&card.info.name_zh);
                     let toughness_mesh = generate_text_mesh(&card.info.stats.toughness.to_string());
                     let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
                     parent
