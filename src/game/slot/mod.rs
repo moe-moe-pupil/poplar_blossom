@@ -19,14 +19,14 @@ impl Plugin for SlotPlugin {
 }
 
 fn spawn_slots(mut commands: Commands) {
-    for x in -1..2 {
-        for y in -1..2 {
-            commands.spawn(SlotBundle {
-                slot: Slot(None),
-                ..default()
-            });
-        }
-    }
+    // for x in -1..2 {
+    //     for y in -1..2 {
+    //         commands.spawn(SlotBundle {
+    //             slot: Slot(None),
+    //             ..default()
+    //         });
+    //     }
+    // }
 }
 
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
@@ -147,10 +147,11 @@ fn on_spawn_slot(
             parent.spawn(PbrBundle {
                 material: slot_data.slot_base_material.clone(),
                 mesh: slot_data.mesh.clone(),
+                visibility: Visibility::Hidden,
                 ..default()
             });
         });
-        commands.entity(entity).insert(Slot(None));
+        // commands.entity(entity).insert(Slot(None));
     }
 }
 

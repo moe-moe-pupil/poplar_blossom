@@ -93,6 +93,8 @@ fn spawn_cards(
                 global_transform: default(),
                 card: Card::from(card_info.clone()),
                 collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
+                visibility: default(),
+                computed_visibiltiy: default(),
             });
         }
         state.set(AppState::Playing);

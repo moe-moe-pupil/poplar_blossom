@@ -31,6 +31,8 @@ pub struct CardBundle {
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub collider: Collider,
+    pub visibility: Visibility,
+    pub computed_visibiltiy: InheritedVisibility,
 }
 
 #[derive(Component)]
