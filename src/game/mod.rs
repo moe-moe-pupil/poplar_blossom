@@ -1,7 +1,8 @@
 pub mod animate;
 pub mod camera;
 pub mod card;
-
+pub mod hand;
+pub mod slot;
 use std::f32::consts::PI;
 
 use bevy::{
