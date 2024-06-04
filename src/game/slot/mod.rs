@@ -10,6 +10,7 @@ pub struct SlotPlugin;
 impl Plugin for SlotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<HoveredSlot>()
+            .init_resource::<SlotData>()
             .add_systems(Startup, spawn_slots)
             .add_systems(PostUpdate, on_spawn_slot)
             .add_systems(Update, hover_slot.after(crate::game::card::select_card))
@@ -22,7 +23,6 @@ fn spawn_slots(mut commands: Commands) {
         for y in -1..2 {
             commands.spawn(SlotBundle {
                 slot: Slot(None),
-                slot_grid_location: SlotGridLocation(IVec2::new(x, y)),
                 ..default()
             });
         }
@@ -98,13 +98,9 @@ impl Slot {
     }
 }
 
-#[derive(Component, Default, Clone, Copy, PartialEq, Eq, Deref, DerefMut)]
-pub struct SlotGridLocation(IVec2);
-
 #[derive(Bundle, Default)]
 pub struct SlotBundle {
     pub slot: Slot,
-    pub slot_grid_location: SlotGridLocation,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
@@ -144,10 +140,9 @@ pub struct SlotGrid(HashMap<IVec2, Entity>);
 fn on_spawn_slot(
     mut commands: Commands,
     slot_data: Res<SlotData>,
-    mut slots: Query<(Entity, &mut Slot, &SlotGridLocation, &mut Transform), Added<Slot>>,
+    mut slots: Query<(Entity, &mut Slot, &mut Transform), Added<Slot>>,
 ) {
-    for (entity, mut slot, location, mut transform) in &mut slots {
-        transform.translation = Slot::grid_to_translation(location.0);
+    for (entity, mut slot, mut transform) in &mut slots {
         commands.entity(entity).with_children(|parent| {
             parent.spawn(PbrBundle {
                 material: slot_data.slot_base_material.clone(),

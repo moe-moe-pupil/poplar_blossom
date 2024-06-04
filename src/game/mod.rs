@@ -17,6 +17,8 @@ use bevy::{
 };
 use bevy_rapier3d::geometry::Collider;
 use card::{CardBundle, CardPlugin};
+use hand::HandPlugin;
+use slot::SlotPlugin;
 
 use crate::{AppState, CardsHandle};
 
@@ -28,7 +30,9 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(CardPlugin)
+        app.add_plugins(SlotPlugin)
+            .add_plugins(CardPlugin)
+            .add_plugins(HandPlugin)
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));
