@@ -19,18 +19,17 @@ impl Plugin for SlotPlugin {
 }
 
 fn spawn_slots(mut commands: Commands) {
-    // for x in -1..2 {
-    //     for y in -1..2 {
-    //         commands.spawn(SlotBundle {
-    //             slot: Slot(None),
-    //             ..default()
-    //         });
-    //     }
-    // }
+    for x in -2..3 {
+        commands.spawn(SlotBundle {
+            slot: Slot(None),
+            transform: Transform::from_xyz(x as f32, 0.0, 0.0),
+            ..default()
+        });
+    }
 }
 
-#[derive(Component, Clone, Copy, PartialEq, Eq)]
-pub struct Slot(Option<Entity>);
+#[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Slot(pub Option<Entity>);
 
 impl Default for Slot {
     fn default() -> Self {
@@ -50,14 +49,13 @@ impl Slot {
         translation: Vec2,
     ) -> Option<(Entity, &'a Slot)> {
         let mut return_value: Option<(Entity, &'a Slot)> = None;
-        let mut max_distance = 500.0;
+        let mut max_distance = 0.5;
         for (slot_entity, slot, transform) in slots.iter() {
             let distance = transform.translation.truncate().distance(translation);
             if distance < max_distance {
                 return_value = Some((slot_entity, slot));
                 max_distance = distance;
             }
-            return_value = None;
         }
         return_value
     }
@@ -87,12 +85,14 @@ impl Slot {
     pub fn try_slotting_card(
         &mut self,
         commands: &mut Commands,
-        slot_entity: Entity,
         card_entity: Entity,
         card: &Card,
     ) -> bool {
         match self.0 {
-            None => true,
+            None => {
+                self.0 = Some(card_entity);
+                true
+            }
             _ => false,
         }
     }
@@ -120,13 +120,11 @@ impl FromWorld for SlotData {
         let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
         let asset_server = world.resource::<AssetServer>();
         Self {
-            mesh: meshes.add(Rectangle {
-                half_size: Vec2::new(3.0, 3.0) / 2.0,
-                ..default()
-            }),
+            mesh: meshes.add(Rectangle::from_size(Vec2::new(Card::ASPECT_RATIO, 1.0))),
             slot_base_material: materials.add(StandardMaterial {
                 unlit: true,
                 depth_bias: -10.0,
+                base_color: Color::WHITE,
                 alpha_mode: AlphaMode::Blend,
                 ..default()
             }),
@@ -147,7 +145,7 @@ fn on_spawn_slot(
             parent.spawn(PbrBundle {
                 material: slot_data.slot_base_material.clone(),
                 mesh: slot_data.mesh.clone(),
-                visibility: Visibility::Hidden,
+                visibility: Visibility::Inherited,
                 ..default()
             });
         });
@@ -171,7 +169,7 @@ pub fn enemy_slot_spawner(
     if timer.tick(time.delta()).just_finished() {}
 }
 
-#[derive(Default, Resource)]
+#[derive(Default, Resource, Debug)]
 pub struct HoveredSlot(pub Option<Entity>);
 
 pub fn hover_slot(
@@ -185,28 +183,28 @@ pub fn hover_slot(
     if let Some(slot_entity) = hovered_slot.0 {
         if let Ok((slot_entity, slot, transfrom)) = slots.get(slot_entity) {
             if let Some(slotted_in_entity) = slot.0 {
-                let mut visibility = visibilities.get_mut(slotted_in_entity).unwrap();
+                let mut visibility = visibilities.get_mut(slot_entity).unwrap();
                 *visibility = Visibility::Hidden;
             }
         }
     }
     for (slot_entity, slot, transfrom) in slots.iter() {
         let mut visibility = visibilities.get_mut(slot_entity).unwrap();
+        // println!("{:?}, {:?}", slot_entity, visibility);
         *visibility = if slot.0.is_some() {
-            Visibility::Visible
-        } else {
             Visibility::Hidden
+        } else {
+            Visibility::Visible
         };
     }
 
     if let SelectedCard::Some(_) = *selected_card {
         if let HoverPoint::Some(point) = *hover_point {
-            let location = Slot::translation_to_grid(point);
             let nearest_slot = Slot::get_nearest_slot(&slots, point.truncate());
             if let Some((slot_entity, slot)) = nearest_slot {
                 hovered_slot.0 = Some(slot_entity);
                 let mut visibility = visibilities.get_mut(slot_entity).unwrap();
-                *visibility = Visibility::Visible;
+                *visibility = Visibility::Hidden;
             } else {
                 hovered_slot.0 = None;
             }

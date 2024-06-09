@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, transform, window::PrimaryWindow};
 use meshtext::{error::MeshTextError, MeshGenerator, MeshText, TextSection};
 mod animations;
 
@@ -6,7 +6,12 @@ use animations::Animations;
 use bevy_rapier3d::{geometry::Collider, pipeline::QueryFilter, plugin::RapierContext};
 use serde::{Deserialize, Serialize};
 
-use super::camera::PlayerCamera;
+use crate::game::slot;
+
+use super::{
+    camera::PlayerCamera,
+    slot::{HoveredSlot, Slot},
+};
 pub struct CardPlugin;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,6 +45,7 @@ pub struct Card {
     pub animations: Animations,
     pub info: CardInfo,
     pub player_id: usize,
+    pub slotted_in_slot: Option<Entity>,
 }
 
 impl Card {
@@ -86,6 +92,7 @@ fn move_cards(
     selected: Res<SelectedCard>,
     hover_point: Res<HoverPoint>,
     mut cards: Query<(Entity, &mut Card, &mut Transform)>,
+    mut transforms: Query<&Transform, Without<Card>>,
 ) {
     for (entity, mut card, mut transform) in &mut cards {
         let mut z_offset = 0.0;
@@ -107,6 +114,11 @@ fn move_cards(
                 .select
                 .reverse_tick(time.delta().mul_f32(2.0));
         }
+        if let Some(slot_entity) = card.slotted_in_slot {
+            let slot_transform = transforms.get(slot_entity).unwrap();
+            transform.translation.x = slot_transform.translation.x;
+            transform.translation.y = slot_transform.translation.y;
+        }
         transform.rotation.x = card
             .animations
             .rotate_x
@@ -125,8 +137,11 @@ pub fn select_card(
     mouse: Res<ButtonInput<MouseButton>>,
     mut selected_card: ResMut<SelectedCard>,
     mut hover_point: ResMut<HoverPoint>,
+    hovered_slot: Res<HoveredSlot>,
+    mut commands: Commands,
     cameras: Query<(&Camera, &Transform), With<PlayerCamera>>,
-    cards: Query<(&mut Card, &Transform)>,
+    mut cards: Query<(&mut Card, &Transform)>,
+    mut slots: Query<&mut Slot>,
 ) {
     let window = windows.single();
     if let Some(cursor) = window.cursor_position() {
@@ -167,18 +182,33 @@ pub fn select_card(
         if mouse.just_pressed(MouseButton::Left) {
             let result = context.cast_ray(near, direction, 50.0, true, QueryFilter::new());
             if let Some((entity, _toi)) = result {
-                let (card, _transfrom) = cards.get(entity).unwrap();
+                let (mut card, _transfrom) = cards.get_mut(entity).unwrap();
                 if card.is_player_controlled() {
                     // unslot from tile
                     *selected_card = SelectedCard::Some(entity);
+                    if let Some(slot_entity) = card.slotted_in_slot {
+                        if let Ok(mut slot) = slots.get_mut(slot_entity) {
+                            slot.0 = None;
+                        }
+                    }
+                    card.slotted_in_slot = None;
                 }
             }
         }
     }
 
     if mouse.just_released(MouseButton::Left) {
-        if let SelectedCard::Some(_entity) = *selected_card {
+        if let SelectedCard::Some(card_entity) = *selected_card {
+            println!("{:#?}", hovered_slot);
+            let (mut card, mut _transform) = cards.get_mut(card_entity).unwrap();
             *selected_card = SelectedCard::None;
+            if let Some(slot_entity) = hovered_slot.0 {
+                if let Ok(mut slot) = slots.get_mut(slot_entity) {
+                    if slot.try_slotting_card(&mut commands, card_entity, &card) {
+                        card.slotted_in_slot = Some(slot_entity);
+                    }
+                }
+            }
         }
     }
 }
@@ -347,6 +377,7 @@ impl From<CardInfo> for Card {
             info: card_info,
             player_id: 0,
             animations: default(),
+            slotted_in_slot: default(),
         }
     }
 }
