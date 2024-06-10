@@ -1,8 +1,8 @@
 use std::{f32::consts::PI, ops::Range, time::Duration};
 
-use bevy::{prelude::Timer, time::TimerMode};
+use bevy::{math::Quat, prelude::Timer, time::TimerMode};
 
-use crate::game::{animate::*, slot::Slot};
+use crate::game::{animate::*, camera::PlayerCamera, slot::Slot};
 
 use super::Card;
 
@@ -10,6 +10,7 @@ pub struct CardAnimations {
     pub select: AnimateRange,
     pub rotate_x: AnimateRange,
     pub rotate_y: AnimateRange,
+    pub rotate_z: AnimateRange,
 }
 
 impl Default for CardAnimations {
@@ -20,6 +21,7 @@ impl Default for CardAnimations {
             0.0..PI / 16.0,
             false,
             Some(1.0),
+            0.0,
         );
         Self {
             select: AnimateRange::new(
@@ -28,9 +30,14 @@ impl Default for CardAnimations {
                 0.0..Card::FLOATING_HEIGHT,
                 false,
                 None,
+                0.0,
             ),
-            rotate_x: rotate_animate.clone(),
+            rotate_x: rotate_animate
+                .clone()
+                .set_default_value(Quat::from_rotation_x(PlayerCamera::CAMERA_ROTATION_X).x)
+                .to_owned(),
             rotate_y: rotate_animate.clone(),
+            rotate_z: rotate_animate.clone().set_range(0.0..PI / 2.0).to_owned(),
         }
     }
 }

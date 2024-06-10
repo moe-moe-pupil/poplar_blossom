@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{mem, time::Duration};
 
 use bevy::{pbr::NotShadowCaster, prelude::*, utils::HashMap};
 use bevy_rapier3d::{na::distance, prelude::Collider};
@@ -40,15 +40,15 @@ pub enum SlotType {
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Slot {
-    slot_type:SlotType,
-    slotted_entity: Option<Entity>
+    slot_type: SlotType,
+    slotted_entity: Option<Entity>,
 }
 
 impl Default for Slot {
     fn default() -> Self {
-        Self{
+        Self {
             slot_type: SlotType::Anywhere,
-            slotted_entity: None
+            slotted_entity: None,
         }
     }
 }
@@ -65,7 +65,7 @@ impl Slot {
         translation: Vec2,
     ) -> Option<(Entity, &'a Slot)> {
         let mut return_value: Option<(Entity, &'a Slot)> = None;
-        let mut max_distance = 0.5;
+        let mut max_distance = 0.7;
         for (slot_entity, slot, transform) in slots.iter() {
             let distance = transform.translation.truncate().distance(translation);
             if distance < max_distance {
@@ -92,7 +92,10 @@ impl Slot {
     }
 
     pub fn new(slot_type: SlotType, slotted_entity: Option<Entity>) -> Self {
-        Self { slot_type, slotted_entity }
+        Self {
+            slot_type,
+            slotted_entity,
+        }
     }
 
     pub fn has_slot(&self) -> bool {
@@ -105,10 +108,11 @@ impl Slot {
     pub fn remove_slotted_entity(&mut self) {
         self.slotted_entity = None;
     }
-    
+
     pub fn try_slotting_card(
         &mut self,
         commands: &mut Commands,
+        slot_entity: Entity,
         card_entity: Entity,
         card: &Card,
     ) -> bool {
@@ -147,7 +151,7 @@ impl FromWorld for SlotData {
             mesh: meshes.add(Rectangle::from_size(Vec2::new(Card::ASPECT_RATIO, 1.0))),
             slot_base_material: materials.add(StandardMaterial {
                 unlit: true,
-                base_color: Color::WHITE,                
+                base_color: Color::WHITE,
                 alpha_mode: AlphaMode::Opaque,
                 ..default()
             }),
@@ -165,12 +169,14 @@ fn on_spawn_slot(
 ) {
     for (entity, mut slot, mut transform) in &mut slots {
         commands.entity(entity).with_children(|parent| {
-            parent.spawn(PbrBundle {
-                material: slot_data.slot_base_material.clone(),
-                mesh: slot_data.mesh.clone(),
-                visibility: Visibility::Inherited,
-                ..default()
-            }).insert(NotShadowCaster);
+            parent
+                .spawn(PbrBundle {
+                    material: slot_data.slot_base_material.clone(),
+                    mesh: slot_data.mesh.clone(),
+                    visibility: Visibility::Inherited,
+                    ..default()
+                })
+                .insert(NotShadowCaster);
         });
         // commands.entity(entity).insert(Slot(None));
     }
@@ -220,19 +226,17 @@ pub fn hover_slot(
         };
     }
 
-    if let SelectedCard::Some(_) = *selected_card {
-        if let HoverPoint::Some(point) = *hover_point {
-            let nearest_slot = Slot::get_nearest_slot(&slots, point.truncate());
-            if let Some((slot_entity, slot)) = nearest_slot {
-                hovered_slot.0 = Some(slot_entity);
-                let mut visibility = visibilities.get_mut(slot_entity).unwrap();
-                *visibility = Visibility::Hidden;
-            } else {
-                hovered_slot.0 = None;
-            }
+    if let HoverPoint::Some(point) = *hover_point {
+        let nearest_slot = Slot::get_nearest_slot(&slots, point.truncate());
+        if let Some((slot_entity, slot)) = nearest_slot {
+            hovered_slot.0 = Some(slot_entity);
+            let mut visibility = visibilities.get_mut(slot_entity).unwrap();
+            *visibility = Visibility::Hidden;
         } else {
             hovered_slot.0 = None;
         }
+    } else {
+        hovered_slot.0 = None;
     }
 }
 

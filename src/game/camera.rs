@@ -95,6 +95,7 @@ pub fn move_camera(
             transform.translation.z..target_z,
             false,
             None,
+            transform.translation.z
         );
         transform.translation.z = animation.tick(time.delta());
     }

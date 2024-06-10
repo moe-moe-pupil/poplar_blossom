@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::{pbr::NotShadowCaster, prelude::*, transform, window::PrimaryWindow};
 use meshtext::{error::MeshTextError, MeshGenerator, MeshText, TextSection};
 mod animations;
@@ -5,6 +7,7 @@ mod animations;
 use animations::CardAnimations;
 use bevy_rapier3d::{geometry::Collider, pipeline::QueryFilter, plugin::RapierContext};
 use serde::{Deserialize, Serialize};
+use std::mem;
 
 use crate::game::slot;
 
@@ -92,12 +95,27 @@ fn move_cards(
     time: Res<Time>,
     selected: Res<SelectedCard>,
     hover_point: Res<HoverPoint>,
+    hovered_slot: Res<HoveredSlot>,
     mut cards: Query<(Entity, &mut Card, &mut Transform)>,
-    mut transforms: Query<&Transform, Without<Card>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut transforms: Query<&mut Transform, Without<Card>>,
 ) {
-    for (entity, mut card, mut transform) in &mut cards {
+    for (card_entity, mut card, mut transform) in &mut cards {
         let mut z_offset = 0.0;
-        if selected.is_selected(entity) {
+        if selected.is_selected(card_entity) {
+            if !mouse.just_pressed(MouseButton::Left) {
+                if let Some(slot_entity) = hovered_slot.0 {
+                    if let Some(target_slot_entity) = card.slotted_in_slot {
+                        if slot_entity != target_slot_entity {
+                            if let Ok([mut transfrom, mut target_transfrom]) =
+                                transforms.get_many_mut([slot_entity, target_slot_entity])
+                            {
+                                mem::swap::<Transform>(&mut transfrom, &mut target_transfrom);
+                            }
+                        }
+                    }
+                }
+            }
             z_offset += card.animations.select.tick(time.delta());
             if let HoverPoint::Some(hover_point) = *hover_point {
                 let delta_translation = (hover_point - transform.translation).xy();
@@ -108,6 +126,7 @@ fn move_cards(
                     .rotate_x
                     .tick_f32(delta_translation.y * -0.1);
                 transform.rotation.y = card.animations.rotate_y.tick_f32(delta_translation.x * 0.1);
+                card.animations.rotate_z.set_default_value(0.0);
             }
         } else {
             if let Some(slot_entity) = card.slotted_in_slot {
@@ -119,8 +138,27 @@ fn move_cards(
                 card.animations
                     .select
                     .set_range(slot_transform.translation.z..Card::FLOATING_HEIGHT)
+                    .set_default_value(slot_transform.translation.z);
+                card.animations
+                    .rotate_x
+                    .set_default_value(slot_transform.rotation.x);
+                card.animations
+                    .rotate_z
+                    .set_default_value(slot_transform.rotation.z);
+                if slot_transform.translation.z != 0.0 {
+                    card.animations
+                        .rotate_z
+                        .tick_f32((slot_transform.translation.z - transform.translation.z) / 2.0);
+                }
             } else {
-                card.animations.select.set_range(0.0..Card::FLOATING_HEIGHT)
+                card.animations
+                    .select
+                    .set_range(0.0..Card::FLOATING_HEIGHT)
+                    .set_default_value(0.0);
+                card.animations
+                    .rotate_x
+                    .set_default_value(Quat::from_rotation_x(PlayerCamera::CAMERA_ROTATION_X).x);
+                card.animations.rotate_z.set_default_value(0.0);
             }
             z_offset += card
                 .animations
@@ -136,6 +174,10 @@ fn move_cards(
             .animations
             .rotate_y
             .reverse_tick(time.delta().mul_f32(0.5));
+        transform.rotation.z = card
+            .animations
+            .rotate_z
+            .reverse_tick(time.delta().mul_f32(0.1));
         transform.translation.z = z_offset;
     }
 }
@@ -151,6 +193,7 @@ pub fn select_card(
     cameras: Query<(&Camera, &Transform), With<PlayerCamera>>,
     mut cards: Query<(&mut Card, &Transform)>,
     mut slots: Query<&mut Slot>,
+    mut transforms: Query<&mut Transform, (Without<Card>, Without<Camera>)>,
 ) {
     let window = windows.single();
     if let Some(cursor) = window.cursor_position() {
@@ -172,8 +215,8 @@ pub fn select_card(
         let near = ndc_to_world.project_point3(cursor_ndc.extend(near_ndc));
         let far = ndc_to_world.project_point3(cursor_ndc.extend(far_ndc));
         let direction = far - near;
-        if let SelectedCard::Some(entity) = selected_card.as_ref() {
-            let (_card, transfrom) = cards.get(entity.clone()).unwrap();
+        if let SelectedCard::Some(card_entity) = selected_card.as_ref() {
+            let (_card, transfrom) = cards.get(card_entity.clone()).unwrap();
 
             let denom = Vec3::Z.dot(direction);
             if denom.abs() > 0.0001 {
@@ -206,7 +249,7 @@ pub fn select_card(
             *selected_card = SelectedCard::None;
             if let Some(slot_entity) = hovered_slot.0 {
                 if let Ok(mut slot) = slots.get_mut(slot_entity) {
-                    if slot.try_slotting_card(&mut commands, card_entity, &card) {
+                    if slot.try_slotting_card(&mut commands, slot_entity, card_entity, &card) {
                         if let Some(slot_entity) = card.slotted_in_slot {
                             if let Ok(mut slot) = slots.get_mut(slot_entity) {
                                 slot.remove_slotted_entity();
@@ -324,19 +367,21 @@ fn on_spawn_card(
                         ..default()
                     });
 
-                    parent.spawn(PbrBundle {
-                        mesh: card_data.portrait_mesh.clone(),
-                        material: materials.add(StandardMaterial {
-                            base_color_texture: Some(
-                                asset_server.load(card.info.name.clone() + ".png"),
-                            ),
-                            unlit: true,
-                            alpha_mode: AlphaMode::Blend,
+                    parent
+                        .spawn(PbrBundle {
+                            mesh: card_data.portrait_mesh.clone(),
+                            material: materials.add(StandardMaterial {
+                                base_color_texture: Some(
+                                    asset_server.load(card.info.name.clone() + ".png"),
+                                ),
+                                unlit: true,
+                                alpha_mode: AlphaMode::Blend,
+                                ..default()
+                            }),
+                            transform: Transform::from_xyz(0.0, -0.08, 0.03),
                             ..default()
-                        }),
-                        transform: Transform::from_xyz(0.0, -0.08, 0.03),
-                        ..default()
-                    }).insert(NotShadowCaster);
+                        })
+                        .insert(NotShadowCaster);
                     let name_mesh = generate_text_mesh(&card.info.name_zh);
                     let toughness_mesh = generate_text_mesh(&card.info.stats.toughness.to_string());
                     let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
@@ -348,7 +393,8 @@ fn on_spawn_card(
                             // transform mesh so that it is in the center
                             transform: Transform::from_xyz(-0.33, 0.35, 0.03),
                             ..Default::default()
-                        }).insert(NotShadowCaster);
+                        })
+                        .insert(NotShadowCaster);
                     [
                         (power_mesh, 1.0, card.info.stats.power.to_string().len()),
                         (
@@ -371,7 +417,8 @@ fn on_spawn_card(
                                 )
                                 .with_scale(Vec3::new(2.0, 2.0, 1.0)),
                                 ..Default::default()
-                            }).insert(NotShadowCaster);
+                            })
+                            .insert(NotShadowCaster);
                     });
                 });
         });

@@ -1,12 +1,16 @@
 use std::{ops::Range, time::Duration};
 
-use bevy::{prelude::Timer, time::TimerMode};
+use bevy::{
+    prelude::{default, Timer},
+    time::TimerMode,
+};
 
 #[derive(Clone)]
 pub struct AnimateRange {
     timer: Timer,
     ease: Ease,
     range: Range<f32>,
+    default_value: f32,
     direction: Option<f32>,
 }
 
@@ -17,6 +21,7 @@ impl AnimateRange {
         range: Range<f32>,
         repeat: bool,
         direction: Option<f32>,
+        default_value: f32,
     ) -> Self {
         Self {
             timer: Timer::new(
@@ -30,7 +35,13 @@ impl AnimateRange {
             ease,
             range,
             direction,
+            default_value,
         }
+    }
+
+    pub fn set_default_value(&mut self, default_value: f32) -> &mut Self {
+        self.default_value = default_value;
+        self
     }
 
     pub fn set_percent(&mut self, percent: f32) -> &mut Self {
@@ -56,8 +67,14 @@ impl AnimateRange {
         self.timer.finished()
     }
 
-    pub fn set_range(&mut self, range: Range<f32>) {
-        self.range = range
+    pub fn set_range(&mut self, range: Range<f32>) -> &mut Self {
+        self.range = range;
+        self
+    }
+
+    pub fn set_dirction(&mut self, direction: Option<f32>) -> &mut Self {
+        self.direction = direction;
+        self
     }
 
     pub fn elapsed_time(&mut self) -> f32 {
@@ -67,8 +84,8 @@ impl AnimateRange {
     pub fn tick(&mut self, delta: Duration) -> f32 {
         self.timer.tick(delta);
         let amount = self.ease.ease(self.timer.fraction());
-        self.direction.unwrap_or(1.0)
-            * (self.range.start + ((self.range.end - self.range.start) * amount))
+        self.direction.unwrap_or(1.0) * ((self.range.end - self.range.start) * amount)
+            + self.default_value
     }
 
     pub fn tick_f32(&mut self, delta: f32) -> f32 {
@@ -117,8 +134,8 @@ impl AnimateRange {
         }
         self.timer.set_elapsed(elapsed_time.saturating_sub(delta));
         let amount = self.ease.ease(self.timer.fraction());
-        self.direction.unwrap_or(1.0)
-            * (self.range.start + ((self.range.end - self.range.start) * amount))
+        self.direction.unwrap_or(1.0) * ((self.range.end - self.range.start) * amount)
+            + self.default_value
     }
 }
 
