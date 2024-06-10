@@ -14,6 +14,11 @@ impl Default for PlayerCamera {
         Self { base_speed: 4.0 }
     }
 }
+
+impl PlayerCamera {
+    pub const CAMERA_ROTATION_X: f32 = 0.2;
+}
+
 pub struct PlayerCameraPlugin;
 
 impl Plugin for PlayerCameraPlugin {
@@ -29,7 +34,7 @@ fn setup_camera(mut commands: Commands) {
         .spawn(Camera3dBundle {
             transform: Transform {
                 translation: Vec3::new(0.0, -1.5, 4.0),
-                rotation: Quat::from_rotation_x(0.2),
+                rotation: Quat::from_rotation_x(PlayerCamera::CAMERA_ROTATION_X),
                 ..default()
             },
             ..default()

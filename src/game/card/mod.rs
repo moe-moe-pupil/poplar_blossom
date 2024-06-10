@@ -1,8 +1,8 @@
-use bevy::{prelude::*, transform, window::PrimaryWindow};
+use bevy::{pbr::NotShadowCaster, prelude::*, transform, window::PrimaryWindow};
 use meshtext::{error::MeshTextError, MeshGenerator, MeshText, TextSection};
 mod animations;
 
-use animations::Animations;
+use animations::CardAnimations;
 use bevy_rapier3d::{geometry::Collider, pipeline::QueryFilter, plugin::RapierContext};
 use serde::{Deserialize, Serialize};
 
@@ -42,7 +42,7 @@ pub struct CardBundle {
 
 #[derive(Component)]
 pub struct Card {
-    pub animations: Animations,
+    pub animations: CardAnimations,
     pub info: CardInfo,
     pub player_id: usize,
     pub slotted_in_slot: Option<Entity>,
@@ -52,6 +52,7 @@ impl Card {
     pub const ASPECT_RATIO: f32 = 50.0 / 60.0;
     pub const ART_WIDTH: f32 = 167.0;
     pub const ART_HEIGHT: f32 = 166.0;
+    pub const FLOATING_HEIGHT: f32 = 1.1;
     pub const ART_ASPECT: f32 = Self::ART_WIDTH / Self::ART_HEIGHT;
     pub const SPAWN_OFFSET: f32 = 1.0;
 
@@ -109,16 +110,24 @@ fn move_cards(
                 transform.rotation.y = card.animations.rotate_y.tick_f32(delta_translation.x * 0.1);
             }
         } else {
+            if let Some(slot_entity) = card.slotted_in_slot {
+                let slot_transform = transforms.get(slot_entity).unwrap();
+                transform.translation.x =
+                    (transform.translation.x + slot_transform.translation.x) / 2.0;
+                transform.translation.y =
+                    (transform.translation.y + slot_transform.translation.y) / 2.0;
+                card.animations
+                    .select
+                    .set_range(slot_transform.translation.z..Card::FLOATING_HEIGHT)
+            } else {
+                card.animations.select.set_range(0.0..Card::FLOATING_HEIGHT)
+            }
             z_offset += card
                 .animations
                 .select
                 .reverse_tick(time.delta().mul_f32(2.0));
         }
-        if let Some(slot_entity) = card.slotted_in_slot {
-            let slot_transform = transforms.get(slot_entity).unwrap();
-            transform.translation.x = slot_transform.translation.x;
-            transform.translation.y = slot_transform.translation.y;
-        }
+
         transform.rotation.x = card
             .animations
             .rotate_x
@@ -186,12 +195,6 @@ pub fn select_card(
                 if card.is_player_controlled() {
                     // unslot from tile
                     *selected_card = SelectedCard::Some(entity);
-                    if let Some(slot_entity) = card.slotted_in_slot {
-                        if let Ok(mut slot) = slots.get_mut(slot_entity) {
-                            slot.0 = None;
-                        }
-                    }
-                    card.slotted_in_slot = None;
                 }
             }
         }
@@ -199,12 +202,16 @@ pub fn select_card(
 
     if mouse.just_released(MouseButton::Left) {
         if let SelectedCard::Some(card_entity) = *selected_card {
-            println!("{:#?}", hovered_slot);
             let (mut card, mut _transform) = cards.get_mut(card_entity).unwrap();
             *selected_card = SelectedCard::None;
             if let Some(slot_entity) = hovered_slot.0 {
                 if let Ok(mut slot) = slots.get_mut(slot_entity) {
                     if slot.try_slotting_card(&mut commands, card_entity, &card) {
+                        if let Some(slot_entity) = card.slotted_in_slot {
+                            if let Ok(mut slot) = slots.get_mut(slot_entity) {
+                                slot.remove_slotted_entity();
+                            }
+                        }
                         card.slotted_in_slot = Some(slot_entity);
                     }
                 }
@@ -329,7 +336,7 @@ fn on_spawn_card(
                         }),
                         transform: Transform::from_xyz(0.0, -0.08, 0.03),
                         ..default()
-                    });
+                    }).insert(NotShadowCaster);
                     let name_mesh = generate_text_mesh(&card.info.name_zh);
                     let toughness_mesh = generate_text_mesh(&card.info.stats.toughness.to_string());
                     let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
@@ -341,7 +348,7 @@ fn on_spawn_card(
                             // transform mesh so that it is in the center
                             transform: Transform::from_xyz(-0.33, 0.35, 0.03),
                             ..Default::default()
-                        });
+                        }).insert(NotShadowCaster);
                     [
                         (power_mesh, 1.0, card.info.stats.power.to_string().len()),
                         (
@@ -364,7 +371,7 @@ fn on_spawn_card(
                                 )
                                 .with_scale(Vec3::new(2.0, 2.0, 1.0)),
                                 ..Default::default()
-                            });
+                            }).insert(NotShadowCaster);
                     });
                 });
         });

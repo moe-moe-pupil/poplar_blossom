@@ -30,9 +30,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(SlotPlugin)
-            .add_plugins(CardPlugin)
-            .add_plugins(HandPlugin)
+        app.add_plugins((CardPlugin, HandPlugin, SlotPlugin))
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));

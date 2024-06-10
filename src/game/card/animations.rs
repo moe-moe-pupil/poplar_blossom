@@ -2,15 +2,17 @@ use std::{f32::consts::PI, ops::Range, time::Duration};
 
 use bevy::{prelude::Timer, time::TimerMode};
 
-use crate::game::animate::*;
+use crate::game::{animate::*, slot::Slot};
 
-pub struct Animations {
+use super::Card;
+
+pub struct CardAnimations {
     pub select: AnimateRange,
     pub rotate_x: AnimateRange,
     pub rotate_y: AnimateRange,
 }
 
-impl Default for Animations {
+impl Default for CardAnimations {
     fn default() -> Self {
         let rotate_animate: AnimateRange = AnimateRange::new(
             Duration::from_secs_f32(0.2),
@@ -23,7 +25,7 @@ impl Default for Animations {
             select: AnimateRange::new(
                 Duration::from_secs_f32(0.2),
                 Ease::Linear,
-                0.0..2.0,
+                0.0..Card::FLOATING_HEIGHT,
                 false,
                 None,
             ),

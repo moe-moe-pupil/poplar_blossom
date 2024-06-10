@@ -1,10 +1,11 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{pbr::NotShadowCaster, prelude::*, utils::HashMap};
 use bevy_rapier3d::{na::distance, prelude::Collider};
 
 use crate::game::card::{Card, CardBundle, CardType, HoverPoint, SelectedCard};
-
+mod animations;
+use animations::SlotAnimations;
 pub struct SlotPlugin;
 
 impl Plugin for SlotPlugin {
@@ -18,22 +19,37 @@ impl Plugin for SlotPlugin {
     }
 }
 
+//TODO: move this testing case to battlefield mod
 fn spawn_slots(mut commands: Commands) {
     for x in -2..3 {
         commands.spawn(SlotBundle {
-            slot: Slot(None),
+            slot: Slot::new(SlotType::Battlefield, None),
             transform: Transform::from_xyz(x as f32, 0.0, 0.0),
             ..default()
         });
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum SlotType {
+    Hand,
+    Battlefield,
+    Deck,
+    Anywhere,
+}
+
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Slot(pub Option<Entity>);
+pub struct Slot {
+    slot_type:SlotType,
+    slotted_entity: Option<Entity>
+}
 
 impl Default for Slot {
     fn default() -> Self {
-        Self(None)
+        Self{
+            slot_type: SlotType::Anywhere,
+            slotted_entity: None
+        }
     }
 }
 
@@ -75,22 +91,30 @@ impl Slot {
         Slot::SLOT_SIZE * Vec2::new(Slot::SLOT_ASPECT_RATIO, 1.0)
     }
 
+    pub fn new(slot_type: SlotType, slotted_entity: Option<Entity>) -> Self {
+        Self { slot_type, slotted_entity }
+    }
+
     pub fn has_slot(&self) -> bool {
-        match self {
-            Slot(None) => false,
+        match self.slotted_entity {
+            None => false,
             _ => true,
         }
     }
 
+    pub fn remove_slotted_entity(&mut self) {
+        self.slotted_entity = None;
+    }
+    
     pub fn try_slotting_card(
         &mut self,
         commands: &mut Commands,
         card_entity: Entity,
         card: &Card,
     ) -> bool {
-        match self.0 {
+        match self.slotted_entity {
             None => {
-                self.0 = Some(card_entity);
+                self.slotted_entity = Some(card_entity);
                 true
             }
             _ => false,
@@ -123,9 +147,8 @@ impl FromWorld for SlotData {
             mesh: meshes.add(Rectangle::from_size(Vec2::new(Card::ASPECT_RATIO, 1.0))),
             slot_base_material: materials.add(StandardMaterial {
                 unlit: true,
-                depth_bias: -10.0,
-                base_color: Color::WHITE,
-                alpha_mode: AlphaMode::Blend,
+                base_color: Color::WHITE,                
+                alpha_mode: AlphaMode::Opaque,
                 ..default()
             }),
         }
@@ -147,7 +170,7 @@ fn on_spawn_slot(
                 mesh: slot_data.mesh.clone(),
                 visibility: Visibility::Inherited,
                 ..default()
-            });
+            }).insert(NotShadowCaster);
         });
         // commands.entity(entity).insert(Slot(None));
     }
@@ -182,7 +205,7 @@ pub fn hover_slot(
 ) {
     if let Some(slot_entity) = hovered_slot.0 {
         if let Ok((slot_entity, slot, transfrom)) = slots.get(slot_entity) {
-            if let Some(slotted_in_entity) = slot.0 {
+            if let Some(slotted_in_entity) = slot.slotted_entity {
                 let mut visibility = visibilities.get_mut(slot_entity).unwrap();
                 *visibility = Visibility::Hidden;
             }
@@ -190,8 +213,7 @@ pub fn hover_slot(
     }
     for (slot_entity, slot, transfrom) in slots.iter() {
         let mut visibility = visibilities.get_mut(slot_entity).unwrap();
-        // println!("{:?}, {:?}", slot_entity, visibility);
-        *visibility = if slot.0.is_some() {
+        *visibility = if slot.slotted_entity.is_some() {
             Visibility::Hidden
         } else {
             Visibility::Visible
