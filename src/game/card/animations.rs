@@ -15,10 +15,11 @@ pub struct CardAnimations {
 
 impl Default for CardAnimations {
     fn default() -> Self {
+        // TODO: fix the over-rotation
         let rotate_animate: AnimateRange = AnimateRange::new(
             Duration::from_secs_f32(0.2),
             Ease::Linear,
-            0.0..PI / 16.0,
+            -0.01..PI / 16.0 + 0.01,
             false,
             Some(1.0),
             0.0,
