@@ -1,7 +1,9 @@
 pub mod animate;
 pub mod camera;
 pub mod card;
+pub mod deck;
 pub mod hand;
+pub mod player;
 pub mod slot;
 use std::f32::consts::PI;
 
@@ -17,6 +19,7 @@ use bevy::{
 };
 use bevy_rapier3d::geometry::Collider;
 use card::{CardBundle, CardPlugin};
+use deck::DeckPlugin;
 use hand::HandPlugin;
 use slot::SlotPlugin;
 
@@ -30,10 +33,24 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((CardPlugin, HandPlugin, SlotPlugin))
+        app.init_resource::<LocalData>()
+            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin))
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));
+    }
+}
+
+#[derive(Resource)]
+pub struct LocalData {
+    player_id: String,
+}
+
+impl FromWorld for LocalData {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            player_id: "todo".to_string(),
+        }
     }
 }
 

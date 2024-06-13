@@ -47,7 +47,7 @@ pub struct CardBundle {
 pub struct Card {
     pub animations: CardAnimations,
     pub info: CardInfo,
-    pub player_id: usize,
+    pub player_id: String,
     pub slotted_in_slot: Option<Entity>,
 }
 
@@ -64,7 +64,7 @@ impl Card {
     }
 
     pub fn is_player_controlled(&self) -> bool {
-        return if self.player_id == 0 { true } else { false };
+        return if self.player_id == "todo".to_owned() { true } else { false };
     }
 }
 
@@ -429,7 +429,7 @@ impl From<CardInfo> for Card {
     fn from(card_info: CardInfo) -> Self {
         Self {
             info: card_info,
-            player_id: 0,
+            player_id: "todo".to_owned(),
             animations: default(),
             slotted_in_slot: default(),
         }

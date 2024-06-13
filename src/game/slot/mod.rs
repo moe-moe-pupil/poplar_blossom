@@ -6,6 +6,8 @@ use bevy_rapier3d::{na::distance, prelude::Collider};
 use crate::game::card::{Card, CardBundle, CardType, HoverPoint, SelectedCard};
 mod animations;
 use animations::SlotAnimations;
+
+use super::player::Player;
 pub struct SlotPlugin;
 
 impl Plugin for SlotPlugin {
@@ -80,6 +82,10 @@ impl Slot {
         (grid_location.as_vec2() * (Self::SIZE + Self::OFFSET)).extend(0.0)
     }
 
+    pub fn get_type(&self) -> SlotType {
+        self.slot_type
+    }
+
     pub fn translation_to_grid(translation: Vec3) -> IVec2 {
         let size = Self::SIZE + Self::OFFSET;
         let sign = translation.truncate().signum();
@@ -129,6 +135,7 @@ impl Slot {
 #[derive(Bundle, Default)]
 pub struct SlotBundle {
     pub slot: Slot,
+    pub player: Player,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
