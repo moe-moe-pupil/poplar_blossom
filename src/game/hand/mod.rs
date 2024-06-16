@@ -23,7 +23,7 @@ impl Plugin for HandPlugin {
         // TODO
         app.add_systems(Startup, spawn_hand)
             .add_systems(Update, on_spawn_hand)
-            .add_systems(PostUpdate, recalc_hand_transform);
+            .add_systems(PostUpdate, (test_spawn_hand, recalc_hand_transform).chain());
     }
 }
 
@@ -38,24 +38,28 @@ fn recalc_hand_transform(
     mut transforms: Query<&mut Transform>,
 ) {
     for (hand, hand_player) in hands.iter() {
-        if hand_player.id() == local_data.player_id {
-            let rotation_diff = PI / 8.0 / hand.slots.len() as f32;
-            let translation_diff = 3.5 / hand.slots.len() as f32;
-            let mut rotation = ((hand.slots.len() / 2) as f32) * rotation_diff;
-            let mut translation = 0.0 - ((hand.slots.len() / 2) as f32) * translation_diff;
-            for slot_entity in hand.slots.iter() {
-                if let Ok(mut transform) = transforms.get_mut(*slot_entity) {
-                    transform.rotation = Quat::from_rotation_z(rotation);
-                    transform.rotate_x(PlayerCamera::CAMERA_ROTATION_X);
-                    transform.translation = Vec3::new(
-                        translation as f32,
-                        -3.0 - (translation.abs() / rotation.abs().sin()
-                            - translation.abs() / rotation.abs().tan()),
-                        Card::FLOATING_HEIGHT,
-                    );
-                    translation += translation_diff;
-                    rotation -= rotation_diff;
-                }
+        let hand_radians: f32 = PI / 8.0;
+        let hand_translation: f32 = 5.0;
+        let rotation_diff = hand_radians / (hand.slots.len() + 1) as f32;
+        let translation_diff = hand_translation / (hand.slots.len() + 1) as f32;
+        let mut rotation: f32 = hand_radians / 2.0;
+        let mut translation: f32 = -hand_translation / 2.0;
+        for slot_entity in hand.slots.iter() {
+            if let Ok(mut transform) = transforms.get_mut(*slot_entity) {
+                translation += translation_diff;
+                rotation -= rotation_diff;
+                transform.rotation = Quat::from_rotation_z(rotation);
+                transform.rotate_x(PlayerCamera::CAMERA_ROTATION_X);
+                transform.translation = Vec3::new(
+                    translation as f32,
+                    -3.0 - if rotation == 0.0 {
+                        0.0
+                    } else {
+                        translation.abs() / rotation.abs().sin()
+                            - translation.abs() / rotation.abs().tan()
+                    },
+                    Card::FLOATING_HEIGHT,
+                );
             }
         }
     }
@@ -73,22 +77,23 @@ struct HandBundle {
     player: Player,
 }
 
+fn test_spawn_hand(mut commands: Commands, input: Res<ButtonInput<KeyCode>>) {
+    if input.just_pressed(KeyCode::KeyA) {
+        commands.spawn(SlotBundle {
+            slot: Slot::new(SlotType::Hand, None),
+            ..default()
+        });
+    }
+}
+
 fn spawn_hand(mut commands: Commands) {
     commands.spawn(HandBundle {
         hand: Hand { slots: vec![] },
         player: Player::default(),
     });
-    for x in -1..=2 {
-        // let mut transfrom: Transform =
-        //     Transform::from_translation(Vec3::new(x as f32 / 2.0, -1.5, Card::FLOATING_HEIGHT))
-        //         .with_rotation(Quat::from_rotation_x(PlayerCamera::CAMERA_ROTATION_X));
-        // transfrom.rotate_around(
-        //     Vec3::new(0.0, -5.0, 0.0),
-        //     Quat::from_rotation_z(-x as f32 * PI / 3.0 / 18.0),
-        // );
+    for x in 0..1 {
         commands.spawn(SlotBundle {
             slot: Slot::new(SlotType::Hand, None),
-            // transform: transfrom,
             ..default()
         });
     }
