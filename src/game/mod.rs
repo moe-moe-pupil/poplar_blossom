@@ -6,6 +6,7 @@ pub mod hand;
 pub mod player;
 pub mod slot;
 pub mod net;
+pub mod actions;
 use std::f32::consts::PI;
 
 use bevy::{
