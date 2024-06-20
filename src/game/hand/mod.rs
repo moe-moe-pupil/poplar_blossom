@@ -89,7 +89,7 @@ fn spawn_hand(mut commands: Commands) {
         hand: Hand { slots: vec![] },
         player: Player::default(),
     });
-    for x in 0..1 {
+    for x in 0..5 {
         commands.spawn(SlotBundle {
             slot: Slot::new(SlotType::Hand, None),
             ..default()
