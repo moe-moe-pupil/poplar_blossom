@@ -5,6 +5,10 @@ pub mod deck;
 pub mod hand;
 pub mod player;
 pub mod slot;
+pub mod net;
+pub mod actions;
+pub mod menu;
+pub mod systemsets;
 use std::f32::consts::PI;
 
 use bevy::{
@@ -22,8 +26,11 @@ use card::{CardBundle, CardPlugin};
 use deck::DeckPlugin;
 use hand::HandPlugin;
 use slot::SlotPlugin;
+use net::NetPlugin;
+use menu::MenuPlugin;
 
 use crate::{AppState, CardsHandle};
+
 
 use self::{
     camera::PlayerCameraPlugin,
@@ -34,10 +41,10 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LocalData>()
-            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin))
+            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin, MenuPlugin))
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
-            .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));
+            .add_systems(Update, check_loading.run_if(in_state(AppState::Loading)));
     }
 }
 
@@ -91,27 +98,15 @@ fn set_up(
     });
 }
 
-fn spawn_cards(
-    mut commands: Commands,
-    cards: Res<CardsHandle>,
+fn check_loading(
     asset_server: Res<AssetServer>,
-    card_infos: Res<Assets<CardInfo>>,
+    cards: Res<CardsHandle>,
     mut state: ResMut<NextState<AppState>>,
-    mut images: ResMut<Assets<Image>>,
 ) {
+    
     if asset_server.get_recursive_dependency_load_state(&cards.0)
         == Some(bevy::asset::RecursiveDependencyLoadState::Loaded)
     {
-        for (_, card_info) in card_infos.iter() {
-            commands.spawn(CardBundle {
-                transform: Transform::from_xyz(0.5, 0.0, 0.1),
-                global_transform: default(),
-                card: Card::from(card_info.clone()),
-                collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
-                visibility: default(),
-                computed_visibiltiy: default(),
-            });
-        }
-        state.set(AppState::Playing);
+        state.set(AppState::MainMenu);
     }
 }

@@ -3,21 +3,21 @@ use std::{mem, time::Duration};
 use bevy::{pbr::NotShadowCaster, prelude::*, utils::HashMap};
 use bevy_rapier3d::{na::distance, prelude::Collider};
 
-use crate::game::card::{Card, CardBundle, CardType, HoverPoint, SelectedCard};
+use crate::{game::card::{Card, CardBundle, CardType, HoverPoint, SelectedCard}, AppState};
 mod animations;
 use animations::SlotAnimations;
 
-use super::player::Player;
+use super::{player::Player, systemsets::PlayingSets};
 pub struct SlotPlugin;
 
 impl Plugin for SlotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<HoveredSlot>()
             .init_resource::<SlotData>()
-            .add_systems(Startup, spawn_slots)
-            .add_systems(PostUpdate, on_spawn_slot)
-            .add_systems(Update, hover_slot.after(crate::game::card::select_card))
-            .add_systems(Update, evaluate_slots.after(hover_slot));
+            .add_systems(OnEnter(AppState::Playing), spawn_slots)
+            .add_systems(PostUpdate, on_spawn_slot.in_set(PlayingSets::Main))
+            .add_systems(Update, hover_slot.after(crate::game::card::select_card).in_set(PlayingSets::Main))
+            .add_systems(Update, evaluate_slots.after(hover_slot).in_set(PlayingSets::Main));
     }
 }
 

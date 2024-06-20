@@ -8,12 +8,10 @@ use bevy_rapier3d::{
 use meshtext::{error::MeshTextError, MeshGenerator, MeshText, TextSection};
 use serde::{Deserialize, Serialize};
 
+use crate::AppState;
+
 use super::{
-    camera::PlayerCamera,
-    card::Card,
-    player::{self, Player},
-    slot::{Slot, SlotBundle, SlotType},
-    LocalData,
+    camera::PlayerCamera, card::Card, player::{self, Player}, slot::{Slot, SlotBundle, SlotType}, systemsets::PlayingSets, LocalData
 };
 
 pub struct HandPlugin;
@@ -21,9 +19,9 @@ pub struct HandPlugin;
 impl Plugin for HandPlugin {
     fn build(&self, app: &mut App) {
         // TODO
-        app.add_systems(Startup, spawn_hand)
-            .add_systems(Update, on_spawn_hand)
-            .add_systems(PostUpdate, (test_spawn_hand, recalc_hand_transform).chain());
+        app.add_systems(OnEnter(AppState::Playing), spawn_hand)
+            .add_systems(Update, on_spawn_hand.in_set(PlayingSets::Main))
+            .add_systems(PostUpdate, (test_spawn_hand, recalc_hand_transform).chain().in_set(PlayingSets::Main));
     }
 }
 
