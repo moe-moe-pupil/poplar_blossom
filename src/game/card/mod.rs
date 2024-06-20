@@ -13,7 +13,8 @@ use crate::{game::slot, AppState};
 
 use super::{
     camera::PlayerCamera,
-    slot::{HoveredSlot, Slot}, systemsets::PlayingSets,
+    slot::{HoveredSlot, Slot},
+    systemsets::PlayingSets,
 };
 pub struct CardPlugin;
 
@@ -30,14 +31,14 @@ impl Plugin for CardPlugin {
             .init_resource::<CardData>()
             .add_systems(OnEnter(AppState::Playing), spawn_cards)
             .add_systems(PostUpdate, on_spawn_card.in_set(PlayingSets::Main))
-            .add_systems(Update, (select_card, move_cards).chain().in_set(PlayingSets::Main));
+            .add_systems(
+                Update,
+                (select_card, move_cards).chain().in_set(PlayingSets::Main),
+            );
     }
 }
 
-fn spawn_cards(
-    mut commands: Commands, 
-    card_infos: Res<Assets<CardInfo>>,
-) {
+fn spawn_cards(mut commands: Commands, card_infos: Res<Assets<CardInfo>>) {
     for (_, card_info) in card_infos.iter() {
         commands.spawn(CardBundle {
             transform: Transform::from_xyz(0.5, 0.0, 0.1),
@@ -81,7 +82,11 @@ impl Card {
     }
 
     pub fn is_player_controlled(&self) -> bool {
-        return if self.player_id == "todo".to_owned() { true } else { false };
+        return if self.player_id == "todo".to_owned() {
+            true
+        } else {
+            false
+        };
     }
 }
 
@@ -251,10 +256,11 @@ pub fn select_card(
         if mouse.just_pressed(MouseButton::Left) {
             let result = context.cast_ray(near, direction, 50.0, true, QueryFilter::new());
             if let Some((entity, _toi)) = result {
-                let (mut card, _transfrom) = cards.get_mut(entity).unwrap();
-                if card.is_player_controlled() {
-                    // unslot from tile
-                    *selected_card = SelectedCard::Some(entity);
+                if let Ok((mut card, _transfrom)) = cards.get_mut(entity) {
+                    if card.is_player_controlled() {
+                        // unslot from tile
+                        *selected_card = SelectedCard::Some(entity);
+                    }
                 }
             }
         }
