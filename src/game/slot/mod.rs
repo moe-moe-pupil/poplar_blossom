@@ -14,7 +14,7 @@ impl Plugin for SlotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<HoveredSlot>()
             .init_resource::<SlotData>()
-            .add_systems(OnEnter(AppState::Playing), spawn_slots)
+            // .add_systems(OnEnter(AppState::Playing), spawn_slots)
             .add_systems(PostUpdate, on_spawn_slot.in_set(PlayingSets::Main))
             .add_systems(Update, hover_slot.after(crate::game::card::select_card).in_set(PlayingSets::Main))
             .add_systems(Update, evaluate_slots.after(hover_slot).in_set(PlayingSets::Main));

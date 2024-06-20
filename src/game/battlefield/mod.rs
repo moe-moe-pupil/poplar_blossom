@@ -1,13 +1,15 @@
 use bevy::prelude::*;
 use bevy_rapier3d::geometry::Collider;
 
+use super::systemsets::PlayingSets;
+
 pub struct BattlefieldPlugin;
 
 impl Plugin for BattlefieldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<BattlefieldData>()
-            .add_systems(Startup, spawn_battlefield)
-            .add_systems(Update, on_spawn_battlefield);
+            .add_systems(Startup, spawn_battlefield.in_set(PlayingSets::Main))
+            .add_systems(Update, on_spawn_battlefield.in_set(PlayingSets::Main));
     }
 }
 
@@ -41,7 +43,7 @@ impl FromWorld for BattlefieldData {
             alpha_mode: AlphaMode::Blend,
             // TODO: add texture for the battlefield
             // base_color_texture: Some(asset_server.load("card_base.png")),
-            base_color: Color::YELLOW,
+            base_color: Color::GRAY,
             ..default()
         };
         Self {
