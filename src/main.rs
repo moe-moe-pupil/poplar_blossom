@@ -5,6 +5,7 @@ use bevy_rapier3d::{
     plugin::{NoUserData, RapierPhysicsPlugin},
     render::RapierDebugRenderPlugin,
 };
+use bevy::window::WindowResolution;
 use game::{card::CardInfo, GamePlugin};
 
 fn main() {
@@ -14,7 +15,16 @@ fn main() {
         color: Color::WHITE,
         brightness: 0.4,
     })
-    .add_plugins(DefaultPlugins)
+    .add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "CardPong".to_string(),
+            resizable: true,
+            position: WindowPosition::Centered(MonitorSelection::Primary),
+            resolution: WindowResolution::new(720., 1080.),
+            ..default()
+        }),
+        ..default()
+    }))
     .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
     .add_plugins(CsvAssetPlugin::<CardInfo>::new(&["cards.csv"]))
     .init_state::<AppState>()
