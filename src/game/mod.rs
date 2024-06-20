@@ -5,6 +5,7 @@ pub mod deck;
 pub mod hand;
 pub mod player;
 pub mod slot;
+pub mod net;
 use std::f32::consts::PI;
 
 use bevy::{
@@ -22,6 +23,7 @@ use card::{CardBundle, CardPlugin};
 use deck::DeckPlugin;
 use hand::HandPlugin;
 use slot::SlotPlugin;
+use net::NetPlugin;
 
 use crate::{AppState, CardsHandle};
 
