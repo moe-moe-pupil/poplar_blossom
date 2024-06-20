@@ -116,10 +116,14 @@ fn click_play_button(
     }
 }
 
+use crate::CardInfo;
+use crate::game::CardBundle;
+
 fn cleanup_menu(
     mut commands: Commands, 
     menu: Query<Entity, With<Menu>>,
     mut state: ResMut<NextState<AppState>>,
+    card_infos: Res<Assets<CardInfo>>,
 ) {
     for entity in menu.iter() {
         commands.entity(entity).despawn_recursive();

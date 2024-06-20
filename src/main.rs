@@ -40,13 +40,14 @@ pub struct CardsHandle(Handle<LoadedCsv<CardInfo>>);
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let cards = CardsHandle(asset_server.load("cards.csv"));
+    let id = cards.0.id();
     commands.insert_resource(cards);
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
     #[default]
-    LoadingCards,
+    Loading,
     MainMenu,
     Playing,
     RoomMenu,

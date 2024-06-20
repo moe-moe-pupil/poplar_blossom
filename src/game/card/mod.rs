@@ -9,11 +9,11 @@ use bevy_rapier3d::{geometry::Collider, pipeline::QueryFilter, plugin::RapierCon
 use serde::{Deserialize, Serialize};
 use std::mem;
 
-use crate::game::slot;
+use crate::{game::slot, AppState};
 
 use super::{
     camera::PlayerCamera,
-    slot::{HoveredSlot, Slot},
+    slot::{HoveredSlot, Slot}, systemsets::PlayingSets,
 };
 pub struct CardPlugin;
 
@@ -28,8 +28,25 @@ impl Plugin for CardPlugin {
         app.init_resource::<SelectedCard>()
             .init_resource::<HoverPoint>()
             .init_resource::<CardData>()
-            .add_systems(PostUpdate, on_spawn_card)
-            .add_systems(Update, (select_card, move_cards).chain());
+            .add_systems(OnEnter(AppState::Playing), spawn_cards)
+            .add_systems(PostUpdate, on_spawn_card.in_set(PlayingSets::Main))
+            .add_systems(Update, (select_card, move_cards).chain().in_set(PlayingSets::Main));
+    }
+}
+
+fn spawn_cards(
+    mut commands: Commands, 
+    card_infos: Res<Assets<CardInfo>>,
+) {
+    for (_, card_info) in card_infos.iter() {
+        commands.spawn(CardBundle {
+            transform: Transform::from_xyz(0.5, 0.0, 0.1),
+            global_transform: default(),
+            card: Card::from(card_info.clone()),
+            collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
+            visibility: default(),
+            computed_visibiltiy: default(),
+        });
     }
 }
 
