@@ -1,27 +1,31 @@
-// from https://github.com/NiklasEi/bevy_game_template
+
+use bevy:: prelude::*;
 
 use crate::AppState;
-use bevy::{app::AppExit, prelude::*};
 use crate::game::menu::ButtonColors;
 use crate::game::menu::ChangeState;
 
-pub fn main_menu_plugin(app: &mut App) {
-    app.add_systems(OnEnter(AppState::MainMenu), setup_menu)
-        .add_systems(Update, (click_play_button).run_if(in_state(AppState::MainMenu)))
-        .add_systems(OnExit(AppState::MainMenu), cleanup_menu);
+pub fn game_over_menu_plugin(app: &mut App) {
+    app
+        .add_systems(OnEnter(AppState::GameOverMenu), on_game_over)
+        .add_systems(Update, (click_button).run_if(in_state(AppState::GameOverMenu)))
+        .add_systems(OnExit(AppState::GameOverMenu), cleanup_menu);
 }
 
+
+
 #[derive(Component)]
-struct Menu;
+struct GameOverMenu;
 
 #[derive(Component)]
 enum ButtonType {
     Play,
-    Quit
+    ToMenu,
 }
 
-fn setup_menu(mut commands: Commands) {
-    info!("menu");
+fn on_game_over(
+    mut commands: Commands,
+) {
     commands
         .spawn((
             NodeBundle {
@@ -36,7 +40,7 @@ fn setup_menu(mut commands: Commands) {
                 },
                 ..default()
             },
-            Menu,
+            GameOverMenu,
         ))
         .with_children(|children| {
             let button_colors = ButtonColors::default();
@@ -59,7 +63,7 @@ fn setup_menu(mut commands: Commands) {
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Play",
+                        "One More Game",
                         TextStyle {
                             font_size: 40.0,
                             color: Color::rgb(0.9, 0.9, 0.9),
@@ -83,11 +87,12 @@ fn setup_menu(mut commands: Commands) {
                         ..Default::default()
                     },
                     button_colors2,
-                    ButtonType::Quit,
+                    ButtonType::ToMenu,
+                    ChangeState(AppState::MainMenu),
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Quit",
+                        "Back to Menu",
                         TextStyle {
                             font_size: 40.0,
                             color: Color::rgb(0.9, 0.9, 0.9),
@@ -98,10 +103,7 @@ fn setup_menu(mut commands: Commands) {
         });
 }
 
-#[derive(Component)]
-struct OpenLink(&'static str);
-
-fn click_play_button(
+fn click_button(
     mut next_state: ResMut<NextState<AppState>>,
     mut interaction_query: Query<
         (
@@ -110,29 +112,15 @@ fn click_play_button(
             &mut BackgroundColor,
             &ButtonColors,
             Option<&ChangeState>,
-            Option<&OpenLink>,
         ),
         (Changed<Interaction>, With<Button>),
     >,
-    mut exit: EventWriter<AppExit>,
 ) {
-    for (button_type, interaction, mut color, button_colors, change_state, open_link) in &mut interaction_query {
+    for (_button_type, interaction, mut color, button_colors, change_state) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 if let Some(state) = change_state {
                     next_state.set(state.0.clone());
-                } else if let Some(link) = open_link {
-                    if let Err(error) = webbrowser::open(link.0) {
-                        warn!("Failed to open link {error:?}");
-                    }
-                }
-                match button_type {
-                    ButtonType::Quit => {
-                        exit.send(AppExit);
-                    }
-                    ButtonType::Play => {
-                        
-                    }
                 }
             }
             Interaction::Hovered => {
@@ -147,10 +135,10 @@ fn click_play_button(
 
 fn cleanup_menu(
     mut commands: Commands, 
-    menu: Query<Entity, With<Menu>>,
+    menu: Query<Entity, With<GameOverMenu>>,
 ) {
     for entity in menu.iter() {
         commands.entity(entity).despawn_recursive();
     }
-    
+     
 }
