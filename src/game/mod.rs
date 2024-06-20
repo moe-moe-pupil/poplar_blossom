@@ -7,6 +7,7 @@ pub mod player;
 pub mod slot;
 pub mod net;
 pub mod actions;
+pub mod menu;
 use std::f32::consts::PI;
 
 use bevy::{
@@ -25,8 +26,10 @@ use deck::DeckPlugin;
 use hand::HandPlugin;
 use slot::SlotPlugin;
 use net::NetPlugin;
+use menu::MenuPlugin;
 
 use crate::{AppState, CardsHandle};
+
 
 use self::{
     camera::PlayerCameraPlugin,
@@ -37,7 +40,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LocalData>()
-            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin))
+            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin, MenuPlugin))
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));
@@ -115,6 +118,6 @@ fn spawn_cards(
                 computed_visibiltiy: default(),
             });
         }
-        state.set(AppState::Playing);
+        state.set(AppState::MainMenu);
     }
 }

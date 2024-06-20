@@ -47,5 +47,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub enum AppState {
     #[default]
     LoadingCards,
+    MainMenu,
     Playing,
+    RoomMenu,
+    GameOverMenu,
 }

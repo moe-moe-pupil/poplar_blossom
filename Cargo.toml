@@ -14,3 +14,4 @@ renet = "0.0.15"
 serde = "1.0.201"
 thiserror = "1.0.60"
 leafwing-input-manager = "0.13.3"
+webbrowser = { version = "1.0.1", features = ["hardened"] }
