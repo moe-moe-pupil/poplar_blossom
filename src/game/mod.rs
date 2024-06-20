@@ -4,6 +4,7 @@ pub mod card;
 pub mod deck;
 pub mod hand;
 pub mod player;
+pub mod battlefield;
 pub mod slot;
 use std::f32::consts::PI;
 
@@ -22,6 +23,7 @@ use card::{CardBundle, CardPlugin};
 use deck::DeckPlugin;
 use hand::HandPlugin;
 use slot::SlotPlugin;
+use battlefield::BattlefieldPlugin;
 
 use crate::{AppState, CardsHandle};
 
@@ -34,7 +36,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LocalData>()
-            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin))
+            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin, BattlefieldPlugin))
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, spawn_cards.run_if(in_state(AppState::LoadingCards)));
