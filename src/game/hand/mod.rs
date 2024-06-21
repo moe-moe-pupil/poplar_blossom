@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::AppState;
 
 use super::{
-    camera::PlayerCamera, card::Card, player::{self, Player}, slot::{Slot, SlotBundle, SlotType}, systemsets::PlayingSets, LocalData
+    camera::PlayerCamera, card::{Card, CardToWhere, EvtSpawnCard}, deck::EvtDrawCardFromDeck, player::{self, Player}, slot::{Slot, SlotBundle, SlotType}, systemsets::PlayingSets, LocalData
 };
 
 pub struct HandPlugin;
@@ -20,7 +20,9 @@ impl Plugin for HandPlugin {
     fn build(&self, app: &mut App) {
         // TODO
         app.add_systems(OnEnter(AppState::Playing), spawn_hand)
-            .add_systems(Update, on_spawn_hand.in_set(PlayingSets::Main))
+            .add_systems(Update, (
+                on_spawn_hand, deck_draw_card
+            ).in_set(PlayingSets::Main))
             .add_systems(PostUpdate, (test_spawn_hand, recalc_hand_transform).chain().in_set(PlayingSets::Main));
     }
 }
@@ -69,10 +71,25 @@ impl Hand {
         true
     }
 }
+
 #[derive(Bundle)]
 struct HandBundle {
     hand: Hand,
     player: Player,
+}
+
+fn deck_draw_card(
+    mut evts: EventReader<EvtDrawCardFromDeck>,
+    mut evt_spawn_card: EventWriter<EvtSpawnCard>,
+) {
+    for evt in evts.read() {
+        for card_info in evt.card_infos.iter() {
+            evt_spawn_card.send(EvtSpawnCard {
+                to_where: CardToWhere::Hand,
+                card_info: card_info.clone(),
+            });
+        }
+    }
 }
 
 fn test_spawn_hand(mut commands: Commands, input: Res<ButtonInput<KeyCode>>) {
