@@ -12,8 +12,7 @@ use std::mem;
 use crate::{game::slot, AppState};
 
 use super::{
-    camera::PlayerCamera,
-    slot::{HoveredSlot, Slot}, systemsets::PlayingSets,
+    camera::PlayerCamera, hand::Hand, slot::{HoveredSlot, Slot}, systemsets::PlayingSets
 };
 pub struct CardPlugin;
 
@@ -28,24 +27,66 @@ impl Plugin for CardPlugin {
         app.init_resource::<SelectedCard>()
             .init_resource::<HoverPoint>()
             .init_resource::<CardData>()
+            .add_event::<EvtSpawnCard>()
             .add_systems(OnEnter(AppState::Playing), spawn_cards)
             .add_systems(PostUpdate, on_spawn_card.in_set(PlayingSets::Main))
-            .add_systems(Update, (select_card, move_cards).chain().in_set(PlayingSets::Main));
+            .add_systems(
+                Update,
+                (select_card, move_cards).chain().in_set(PlayingSets::Main),
+            )
+            .add_systems(Update, evt_spawn_card);
     }
 }
 
-fn spawn_cards(
-    mut commands: Commands, 
-    card_infos: Res<Assets<CardInfo>>,
+#[derive(Clone)]
+pub enum CardToWhere {
+    Ground,
+    Hand,
+}
+
+#[derive(Event)]
+pub struct EvtSpawnCard {
+    pub to_where: CardToWhere,
+    pub card_info: CardInfo,
+}
+
+fn evt_spawn_card(
+    mut commands: Commands,
+    mut events: EventReader<EvtSpawnCard>,
+    mut hand: Query<&mut Hand>,
 ) {
-    for (_, card_info) in card_infos.iter() {
-        commands.spawn(CardBundle {
+    for evt in events.read() {
+        let card_info = evt.card_info.clone();
+        let entity = commands.spawn(CardBundle {
             transform: Transform::from_xyz(0.5, 0.0, 0.1),
             global_transform: default(),
             card: Card::from(card_info.clone()),
             collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
             visibility: default(),
             computed_visibiltiy: default(),
+        });
+
+        match evt.to_where {
+            CardToWhere::Ground => {
+                // commands.entity(entity).insert(slot::SlotType::Ground);
+            }
+            CardToWhere::Hand => {
+                let mut hand = hand.single_mut();
+                hand.try_put_card_into_hand(entity.id());
+            }
+        
+        }
+    }
+}
+
+fn spawn_cards(
+    card_infos: Res<Assets<CardInfo>>,
+    mut event: EventWriter<EvtSpawnCard>,
+) {
+    for (_, card_info) in card_infos.iter() {
+        event.send(EvtSpawnCard {
+            to_where: CardToWhere::Ground,
+            card_info: card_info.clone(),
         });
     }
 }
@@ -81,7 +122,11 @@ impl Card {
     }
 
     pub fn is_player_controlled(&self) -> bool {
-        return if self.player_id == "todo".to_owned() { true } else { false };
+        return if self.player_id == "todo".to_owned() {
+            true
+        } else {
+            false
+        };
     }
 }
 
@@ -251,10 +296,11 @@ pub fn select_card(
         if mouse.just_pressed(MouseButton::Left) {
             let result = context.cast_ray(near, direction, 50.0, true, QueryFilter::new());
             if let Some((entity, _toi)) = result {
-                let (mut card, _transfrom) = cards.get_mut(entity).unwrap();
-                if card.is_player_controlled() {
-                    // unslot from tile
-                    *selected_card = SelectedCard::Some(entity);
+                if let Ok((mut card, _transfrom)) = cards.get_mut(entity) {
+                    if card.is_player_controlled() {
+                        // unslot from tile
+                        *selected_card = SelectedCard::Some(entity);
+                    }
                 }
             }
         }

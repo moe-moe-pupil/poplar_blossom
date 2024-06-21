@@ -1,16 +1,18 @@
+pub mod actions;
 pub mod animate;
+pub mod battlefield;
 pub mod camera;
 pub mod card;
 pub mod deck;
 pub mod hand;
+pub mod menu;
+pub mod net;
 pub mod player;
 pub mod slot;
-pub mod net;
-pub mod actions;
-pub mod menu;
 pub mod systemsets;
 use std::f32::consts::PI;
 
+use battlefield::BattlefieldPlugin;
 use bevy::{
     pbr::CascadeShadowConfigBuilder,
     prelude::*,
@@ -25,12 +27,11 @@ use bevy_rapier3d::geometry::Collider;
 use card::{CardBundle, CardPlugin};
 use deck::DeckPlugin;
 use hand::HandPlugin;
-use slot::SlotPlugin;
-use net::NetPlugin;
 use menu::MenuPlugin;
+use net::NetPlugin;
+use slot::SlotPlugin;
 
 use crate::{AppState, CardsHandle};
-
 
 use self::{
     camera::PlayerCameraPlugin,
@@ -41,7 +42,14 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LocalData>()
-            .add_plugins((CardPlugin, HandPlugin, SlotPlugin, DeckPlugin, MenuPlugin))
+            .add_plugins((
+                CardPlugin,
+                HandPlugin,
+                SlotPlugin,
+                DeckPlugin,
+                MenuPlugin,
+                BattlefieldPlugin,
+            ))
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, check_loading.run_if(in_state(AppState::Loading)));
@@ -103,7 +111,6 @@ fn check_loading(
     cards: Res<CardsHandle>,
     mut state: ResMut<NextState<AppState>>,
 ) {
-    
     if asset_server.get_recursive_dependency_load_state(&cards.0)
         == Some(bevy::asset::RecursiveDependencyLoadState::Loaded)
     {

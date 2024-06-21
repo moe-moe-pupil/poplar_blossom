@@ -6,6 +6,7 @@ use bevy_rapier3d::{
     render::RapierDebugRenderPlugin,
 };
 use bevy::window::WindowResolution;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use game::{card::CardInfo, GamePlugin};
 
 fn main() {
@@ -20,7 +21,7 @@ fn main() {
             title: "CardPong".to_string(),
             resizable: true,
             position: WindowPosition::Centered(MonitorSelection::Primary),
-            resolution: WindowResolution::new(720., 1080.),
+            resolution: WindowResolution::new(1080., 1360.),
             ..default()
         }),
         ..default()
@@ -30,9 +31,18 @@ fn main() {
     .init_state::<AppState>()
     .add_systems(Startup, setup)
     .add_plugins(GamePlugin);
+    
     #[cfg(debug_assertions)]
-    app.add_plugins(RapierDebugRenderPlugin::default());
+    {
+        app.add_plugins((
+            // LogDiagnosticsPlugin::default(),
+            RapierDebugRenderPlugin::default(),
+            WorldInspectorPlugin::new(),
+        ));
+    }
+    
     app.run();
+
 }
 
 #[derive(Resource)]
