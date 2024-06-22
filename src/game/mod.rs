@@ -73,6 +73,7 @@ fn set_up(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
