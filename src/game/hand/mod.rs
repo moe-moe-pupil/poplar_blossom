@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, process::Command};
 
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, transform::commands, window::PrimaryWindow};
 use bevy_rapier3d::{
     geometry::Collider, parry::transformation::utils::transform, pipeline::QueryFilter,
     plugin::RapierContext,
@@ -11,7 +11,13 @@ use serde::{Deserialize, Serialize};
 use crate::AppState;
 
 use super::{
-    camera::PlayerCamera, card::{Card, CardToWhere, EvtSpawnCard}, deck::EvtDrawCardFromDeck, player::{self, Player}, slot::{Slot, SlotBundle, SlotType}, systemsets::PlayingSets, LocalData
+    camera::PlayerCamera,
+    card::{Card, EvtSpawnCard},
+    deck::EvtDrawCardFromDeck,
+    player::{self, Player},
+    slot::{Slot, SlotBundle, SlotType},
+    systemsets::PlayingSets,
+    LocalData,
 };
 
 pub struct HandPlugin;
@@ -20,10 +26,16 @@ impl Plugin for HandPlugin {
     fn build(&self, app: &mut App) {
         // TODO
         app.add_systems(OnEnter(AppState::Playing), spawn_hand)
-            .add_systems(Update, (
-                on_spawn_hand, deck_draw_card
-            ).in_set(PlayingSets::Main))
-            .add_systems(PostUpdate, (test_spawn_hand, recalc_hand_transform).chain().in_set(PlayingSets::Main));
+            .add_systems(
+                Update,
+                (on_spawn_hand, deck_draw_card).in_set(PlayingSets::Main),
+            )
+            .add_systems(
+                PostUpdate,
+                (test_spawn_hand, recalc_hand_transform)
+                    .chain()
+                    .in_set(PlayingSets::Main),
+            );
     }
 }
 
@@ -66,9 +78,21 @@ fn recalc_hand_transform(
 }
 
 impl Hand {
-    pub fn try_put_card_into_hand(&mut self, entity: Entity) -> bool {
-        self.slots.push(entity);
-        true
+    pub fn try_put_card_into_hand(
+        &mut self,
+        card_entity: Entity,
+        slots: &mut Query<&mut Slot>,
+        card: &mut Card,
+    ) -> bool {
+        for slot_entity in self.slots.iter() {
+            if let Ok(mut slot) = slots.get_mut(*slot_entity) {
+                if slot.try_slotting_card(card_entity) {
+                    card.slotted_in_slot = Some(*slot_entity);
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -85,7 +109,7 @@ fn deck_draw_card(
     for evt in evts.read() {
         for card_info in evt.card_infos.iter() {
             evt_spawn_card.send(EvtSpawnCard {
-                to_where: CardToWhere::Hand,
+                slot_type: SlotType::Hand,
                 card_info: card_info.clone(),
             });
         }
@@ -106,7 +130,7 @@ fn spawn_hand(mut commands: Commands) {
         hand: Hand { slots: vec![] },
         player: Player::default(),
     });
-    for x in 0..5 {
+    for _i in 0..5 {
         commands.spawn(SlotBundle {
             slot: Slot::new(SlotType::Hand, None),
             ..default()

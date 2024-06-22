@@ -81,6 +81,5 @@ fn on_deck_spawn_card(
         evt.send(EvtDrawCardFromDeck {
             card_infos
         });
-        println!("deck spawn card");
     }
 } 

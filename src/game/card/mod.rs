@@ -12,7 +12,12 @@ use std::mem;
 use crate::{game::slot, AppState};
 
 use super::{
-    camera::PlayerCamera, hand::Hand, slot::{HoveredSlot, Slot}, systemsets::PlayingSets
+    camera::PlayerCamera,
+    hand::Hand,
+    player::Player,
+    slot::{HoveredSlot, Slot, SlotType},
+    systemsets::PlayingSets,
+    LocalData,
 };
 pub struct CardPlugin;
 
@@ -38,15 +43,9 @@ impl Plugin for CardPlugin {
     }
 }
 
-#[derive(Clone)]
-pub enum CardToWhere {
-    Ground,
-    Hand,
-}
-
 #[derive(Event)]
 pub struct EvtSpawnCard {
-    pub to_where: CardToWhere,
+    pub slot_type: SlotType,
     pub card_info: CardInfo,
 }
 
@@ -54,6 +53,7 @@ fn evt_spawn_card(
     mut commands: Commands,
     mut events: EventReader<EvtSpawnCard>,
     mut hand: Query<&mut Hand>,
+    mut slots: Query<&mut Slot>,
 ) {
     for evt in events.read() {
         let card_info = evt.card_info.clone();
@@ -64,28 +64,15 @@ fn evt_spawn_card(
             collider: Collider::cuboid(Card::ASPECT_RATIO / 2.0, 1.0 / 2.0, 0.2),
             visibility: default(),
             computed_visibiltiy: default(),
+            slot_type: evt.slot_type,
         });
-
-        match evt.to_where {
-            CardToWhere::Ground => {
-                // commands.entity(entity).insert(slot::SlotType::Ground);
-            }
-            CardToWhere::Hand => {
-                let mut hand = hand.single_mut();
-                hand.try_put_card_into_hand(entity.id());
-            }
-        
-        }
     }
 }
 
-fn spawn_cards(
-    card_infos: Res<Assets<CardInfo>>,
-    mut event: EventWriter<EvtSpawnCard>,
-) {
+fn spawn_cards(card_infos: Res<Assets<CardInfo>>, mut event: EventWriter<EvtSpawnCard>) {
     for (_, card_info) in card_infos.iter() {
         event.send(EvtSpawnCard {
-            to_where: CardToWhere::Ground,
+            slot_type: SlotType::Anywhere,
             card_info: card_info.clone(),
         });
     }
@@ -99,6 +86,7 @@ pub struct CardBundle {
     pub collider: Collider,
     pub visibility: Visibility,
     pub computed_visibiltiy: InheritedVisibility,
+    pub slot_type: SlotType,
 }
 
 #[derive(Component)]
@@ -312,7 +300,7 @@ pub fn select_card(
             *selected_card = SelectedCard::None;
             if let Some(slot_entity) = hovered_slot.0 {
                 if let Ok(mut slot) = slots.get_mut(slot_entity) {
-                    if slot.try_slotting_card(&mut commands, slot_entity, card_entity, &card) {
+                    if slot.try_slotting_card(card_entity) {
                         if let Some(slot_entity) = card.slotted_in_slot {
                             if let Ok(mut slot) = slots.get_mut(slot_entity) {
                                 slot.remove_slotted_entity();
@@ -413,78 +401,96 @@ fn on_spawn_card(
     mut commands: Commands,
     card_data: Res<CardData>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    cards: Query<(Entity, &Card), Added<Card>>,
+    mut cards: Query<(Entity, &mut Card, &SlotType), Added<Card>>,
     mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
+    mut slots: Query<&mut Slot>,
+    mut hands: Query<(&mut Hand, &Player)>,
+    local_data: Res<LocalData>,
 ) {
-    for (entity, card) in &cards {
-        commands.entity(entity).with_children(|parent| {
-            parent
-                .spawn(SpatialBundle {
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    parent.spawn(PbrBundle {
-                        material: card_data.card_base_material.clone(),
-                        mesh: card_data.mesh.clone(),
-                        ..default()
-                    });
-
+    for (mut hand, player) in hands.iter_mut() {
+        if player.id() == local_data.player_id {
+            for (entity, mut card, slot_type) in cards.iter_mut() {
+                commands.entity(entity).with_children(|parent| {
                     parent
-                        .spawn(PbrBundle {
-                            mesh: card_data.portrait_mesh.clone(),
-                            material: materials.add(StandardMaterial {
-                                base_color_texture: Some(
-                                    asset_server.load(card.info.name.clone() + ".png"),
-                                ),
-                                unlit: true,
-                                alpha_mode: AlphaMode::Blend,
-                                ..default()
-                            }),
-                            transform: Transform::from_xyz(0.0, -0.08, 0.03),
-                            ..default()
-                        })
-                        .insert(NotShadowCaster);
-                    let name_mesh = generate_text_mesh(&card.info.name_zh);
-                    let toughness_mesh = generate_text_mesh(&card.info.stats.toughness.to_string());
-                    let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
-                    parent
-                        // use this bundle to change the rotation pivot to the center
-                        .spawn(PbrBundle {
-                            mesh: meshes.add(name_mesh),
-                            material: card_data.card_font_material.clone(),
-                            // transform mesh so that it is in the center
-                            transform: Transform::from_xyz(-0.33, 0.35, 0.03),
+                        .spawn(SpatialBundle {
                             ..Default::default()
                         })
-                        .insert(NotShadowCaster);
-                    [
-                        (power_mesh, 1.0, card.info.stats.power.to_string().len()),
-                        (
-                            toughness_mesh,
-                            -1.0,
-                            card.info.stats.toughness.to_string().len(),
-                        ),
-                    ]
-                    .map(|(mesh, dir, len)| {
-                        parent
-                            // use this bundle to change the rotation pivot to the center
-                            .spawn(PbrBundle {
-                                mesh: meshes.add(mesh),
-                                material: card_data.card_font_material.clone(),
-                                // transform mesh so that it is in the center
-                                transform: Transform::from_xyz(
-                                    -0.4 * dir - len as f32 * 0.04,
-                                    -0.45,
-                                    0.03,
-                                )
-                                .with_scale(Vec3::new(2.0, 2.0, 1.0)),
-                                ..Default::default()
-                            })
-                            .insert(NotShadowCaster);
-                    });
+                        .with_children(|parent| {
+                            parent.spawn(PbrBundle {
+                                material: card_data.card_base_material.clone(),
+                                mesh: card_data.mesh.clone(),
+                                ..default()
+                            });
+
+                            parent
+                                .spawn(PbrBundle {
+                                    mesh: card_data.portrait_mesh.clone(),
+                                    material: materials.add(StandardMaterial {
+                                        base_color_texture: Some(
+                                            asset_server.load(card.info.name.clone() + ".png"),
+                                        ),
+                                        unlit: true,
+                                        alpha_mode: AlphaMode::Blend,
+                                        ..default()
+                                    }),
+                                    transform: Transform::from_xyz(0.0, -0.08, 0.03),
+                                    ..default()
+                                })
+                                .insert(NotShadowCaster);
+                            let name_mesh = generate_text_mesh(&card.info.name_zh);
+                            let toughness_mesh =
+                                generate_text_mesh(&card.info.stats.toughness.to_string());
+                            let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
+                            parent
+                                // use this bundle to change the rotation pivot to the center
+                                .spawn(PbrBundle {
+                                    mesh: meshes.add(name_mesh),
+                                    material: card_data.card_font_material.clone(),
+                                    // transform mesh so that it is in the center
+                                    transform: Transform::from_xyz(-0.33, 0.35, 0.03),
+                                    ..Default::default()
+                                })
+                                .insert(NotShadowCaster);
+                            [
+                                (power_mesh, 1.0, card.info.stats.power.to_string().len()),
+                                (
+                                    toughness_mesh,
+                                    -1.0,
+                                    card.info.stats.toughness.to_string().len(),
+                                ),
+                            ]
+                            .map(|(mesh, dir, len)| {
+                                parent
+                                    // use this bundle to change the rotation pivot to the center
+                                    .spawn(PbrBundle {
+                                        mesh: meshes.add(mesh),
+                                        material: card_data.card_font_material.clone(),
+                                        // transform mesh so that it is in the center
+                                        transform: Transform::from_xyz(
+                                            -0.4 * dir - len as f32 * 0.04,
+                                            -0.45,
+                                            0.03,
+                                        )
+                                        .with_scale(Vec3::new(2.0, 2.0, 1.0)),
+                                        ..Default::default()
+                                    })
+                                    .insert(NotShadowCaster);
+                            });
+                        });
                 });
-        });
+                match slot_type {
+                    SlotType::Battlefield => {
+                        // commands.entity(entity).insert(slot::SlotType::Ground);
+                    }
+                    SlotType::Hand => {
+                        hand.try_put_card_into_hand(entity, &mut slots, &mut card);
+                    }
+                    SlotType::Deck => {},
+                    SlotType::Anywhere => {},
+                }
+            }
+        }
     }
 }
 

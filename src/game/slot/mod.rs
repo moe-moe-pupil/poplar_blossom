@@ -32,7 +32,7 @@ fn spawn_slots(mut commands: Commands) {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Component)]
 pub enum SlotType {
     Hand,
     Battlefield,
@@ -117,10 +117,7 @@ impl Slot {
 
     pub fn try_slotting_card(
         &mut self,
-        commands: &mut Commands,
-        slot_entity: Entity,
         card_entity: Entity,
-        card: &Card,
     ) -> bool {
         match self.slotted_entity {
             None => {
