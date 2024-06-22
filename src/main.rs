@@ -1,12 +1,13 @@
 mod game;
 use bevy::prelude::*;
+use bevy::window::WindowResolution;
 use bevy_common_assets::csv::{CsvAssetPlugin, LoadedCsv};
+use bevy_editor_pls::prelude::*;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::{
     plugin::{NoUserData, RapierPhysicsPlugin},
     render::RapierDebugRenderPlugin,
 };
-use bevy::window::WindowResolution;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use game::{card::CardInfo, GamePlugin};
 
 fn main() {
@@ -31,18 +32,18 @@ fn main() {
     .init_state::<AppState>()
     .add_systems(Startup, setup)
     .add_plugins(GamePlugin);
-    
+
     #[cfg(debug_assertions)]
     {
         app.add_plugins((
             // LogDiagnosticsPlugin::default(),
             RapierDebugRenderPlugin::default(),
-            WorldInspectorPlugin::new(),
+            // WorldInspectorPlugin::new(),
+            EditorPlugin::default(),
         ));
     }
-    
-    app.run();
 
+    app.run();
 }
 
 #[derive(Resource)]

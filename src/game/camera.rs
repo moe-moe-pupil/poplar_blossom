@@ -39,7 +39,8 @@ fn setup_camera(mut commands: Commands) {
             },
             ..default()
         })
-        .insert(PlayerCamera::default());
+        .insert(PlayerCamera::default())
+        .insert(IsDefaultUiCamera);
 }
 
 pub fn move_camera(
@@ -95,7 +96,7 @@ pub fn move_camera(
             transform.translation.z..target_z,
             false,
             None,
-            transform.translation.z
+            transform.translation.z,
         );
         transform.translation.z = animation.tick(time.delta());
     }
