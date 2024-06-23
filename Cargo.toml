@@ -16,4 +16,6 @@ thiserror = "1.0.60"
 webbrowser = { version = "1.0.1", features = ["hardened"] }
 bevy-inspector-egui = "0.24.0"
 bevy_editor_pls = "0.8.1"
+bevy_gltf_components = "0.5.1"
+bevy_asset_loader = "0.20.2"
 # bevy_tweening = "0.10"
