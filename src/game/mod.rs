@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod animate;
+pub mod ball;
 pub mod battlefield;
 pub mod camera;
 pub mod card;
@@ -10,27 +11,17 @@ pub mod net;
 pub mod player;
 pub mod slot;
 pub mod systemsets;
-use std::f32::consts::PI;
+
 pub mod utils;
-use battlefield::BattlefieldPlugin;
-use bevy::gltf::Gltf;
-use bevy::{
-    pbr::CascadeShadowConfigBuilder,
-    prelude::*,
-    render::{
-        camera::RenderTarget,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
-    },
-};
-use bevy_asset_loader::prelude::*;
+use ball::BallPlugin;
+use bevy::prelude::*;
 use bevy_gltf_blueprints::GltfBlueprintsSet;
 use bevy_gltf_components::ComponentsFromGltfPlugin;
 use bevy_rapier3d::geometry::{
     ActiveCollisionTypes, ActiveEvents, Collider, ComputedColliderShape,
 };
-use card::{CardBundle, CardPlugin};
+use bevy_rapier3d::prelude::*;
+use card::CardPlugin;
 use deck::DeckPlugin;
 use hand::HandPlugin;
 use menu::MenuPlugin;
@@ -65,6 +56,7 @@ impl Plugin for GamePlugin {
                 SlotPlugin,
                 DeckPlugin,
                 MenuPlugin,
+                BallPlugin,
                 // BattlefieldPlugin,
                 ComponentsFromGltfPlugin::default(),
             ))
@@ -146,7 +138,8 @@ pub(crate) fn physics_replace_proxies(
                                 | ActiveCollisionTypes::STATIC_STATIC
                                 | ActiveCollisionTypes::DYNAMIC_STATIC,
                         )
-                        .insert(ActiveEvents::COLLISION_EVENTS);
+                        .insert(ActiveEvents::COLLISION_EVENTS)
+                        .insert(RigidBody::Fixed);
                     //  .insert(ActiveEvents::COLLISION_EVENTS)
                     // break;
                     // Collider::convex_hull(points)
@@ -169,7 +162,9 @@ fn set_up(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
+    mut rapier_config: ResMut<RapierConfiguration>
 ) {
+    rapier_config.gravity = Vec3::new(0.0, 0.0, -9.8);
     // commands.spawn(DirectionalLightBundle {
     //     directional_light: DirectionalLight {
     //         illuminance: light_consts::lux::OVERCAST_DAY,
