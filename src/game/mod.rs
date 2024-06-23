@@ -51,7 +51,7 @@ impl Plugin for GamePlugin {
                 SlotPlugin,
                 DeckPlugin,
                 MenuPlugin,
-                BattlefieldPlugin,
+                // BattlefieldPlugin,
                 ComponentsFromGltfPlugin::default(),
             ))
             .add_plugins(PlayerCameraPlugin)
@@ -120,6 +120,6 @@ fn check_loading(
     if asset_server.get_recursive_dependency_load_state(&cards.0)
         == Some(bevy::asset::RecursiveDependencyLoadState::Loaded)
     {
-        state.set(AppState::MainMenu);
+        // state.set(AppState::MainMenu);
     }
 }
