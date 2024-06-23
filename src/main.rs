@@ -1,6 +1,8 @@
 mod game;
+use bevy::gltf::Gltf;
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
+use bevy_asset_loader::prelude::*;
 use bevy_common_assets::csv::{CsvAssetPlugin, LoadedCsv};
 use bevy_editor_pls::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -8,6 +10,7 @@ use bevy_rapier3d::{
     plugin::{NoUserData, RapierPhysicsPlugin},
     render::RapierDebugRenderPlugin,
 };
+
 use game::{card::CardInfo, GamePlugin};
 
 fn main() {
@@ -30,6 +33,11 @@ fn main() {
     .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
     .add_plugins(CsvAssetPlugin::<CardInfo>::new(&["cards.csv"]))
     .init_state::<AppState>()
+    .add_loading_state(
+        LoadingState::new(AppState::Loading)
+            .continue_to_state(AppState::MainMenu)
+            .load_collection::<Models>(),
+    )
     .add_systems(Startup, setup)
     .add_plugins(GamePlugin);
 
@@ -44,6 +52,12 @@ fn main() {
     }
 
     app.run();
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct Models {
+    #[asset(path = "battlefield.glb")]
+    pub battlefield_model: Handle<Gltf>,
 }
 
 #[derive(Resource)]
