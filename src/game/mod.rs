@@ -11,7 +11,7 @@ pub mod player;
 pub mod slot;
 pub mod systemsets;
 use std::f32::consts::PI;
-
+pub mod utils;
 use battlefield::BattlefieldPlugin;
 use bevy::gltf::Gltf;
 use bevy::{
@@ -25,14 +25,18 @@ use bevy::{
     },
 };
 use bevy_asset_loader::prelude::*;
+use bevy_gltf_blueprints::GltfBlueprintsSet;
 use bevy_gltf_components::ComponentsFromGltfPlugin;
-use bevy_rapier3d::geometry::Collider;
+use bevy_rapier3d::geometry::{
+    ActiveCollisionTypes, ActiveEvents, Collider, ComputedColliderShape,
+};
 use card::{CardBundle, CardPlugin};
 use deck::DeckPlugin;
 use hand::HandPlugin;
 use menu::MenuPlugin;
 use net::NetPlugin;
 use slot::SlotPlugin;
+use utils::*;
 
 use crate::{AppState, CardsHandle};
 
@@ -42,9 +46,19 @@ use self::{
 };
 pub struct GamePlugin;
 
+#[derive(Component, Reflect, Default, Debug)]
+#[reflect(Component)]
+pub enum BlenderCollider {
+    Ball(f32),
+    Cuboid(Vec3),
+    Capsule(Vec3, Vec3, f32),
+    #[default]
+    Mesh,
+}
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LocalData>()
+            .register_type::<BlenderCollider>()
             .add_plugins((
                 CardPlugin,
                 HandPlugin,
@@ -54,6 +68,10 @@ impl Plugin for GamePlugin {
                 // BattlefieldPlugin,
                 ComponentsFromGltfPlugin::default(),
             ))
+            .add_systems(
+                Update,
+                physics_replace_proxies.after(GltfBlueprintsSet::AfterSpawn),
+            )
             .add_plugins(PlayerCameraPlugin)
             .add_systems(Startup, set_up)
             .add_systems(Update, check_loading.run_if(in_state(AppState::Loading)));
@@ -65,6 +83,79 @@ pub struct LocalData {
     player_id: String,
 }
 
+#[allow(clippy::type_complexity)]
+pub(crate) fn physics_replace_proxies(
+    meshes: Res<Assets<Mesh>>,
+    mesh_handles: Query<&Handle<Mesh>>,
+    mut proxy_colliders: Query<
+        (Entity, &BlenderCollider, &Name, &mut Visibility),
+        Added<BlenderCollider>,
+    >,
+    // needed for tri meshes
+    children: Query<&Children>,
+
+    mut commands: Commands,
+) {
+    for proxy_colider in proxy_colliders.iter_mut() {
+        let (entity, collider_proxy, name, mut visibility) = proxy_colider;
+        // we hide the collider meshes: perhaps they should be removed altogether once processed ?
+        if name.ends_with("_collider") || name.ends_with("_sensor") {
+            *visibility = Visibility::Hidden;
+        }
+        let mut rapier_collider: Collider;
+        match collider_proxy {
+            BlenderCollider::Ball(radius) => {
+                info!("generating collider from proxy: ball");
+                rapier_collider = Collider::ball(*radius);
+                commands.entity(entity)
+                    .insert(rapier_collider)
+                    .insert(ActiveEvents::COLLISION_EVENTS)  // FIXME: this is just for demo purposes !!!
+                    ;
+            }
+            BlenderCollider::Cuboid(size) => {
+                info!("generating collider from proxy: cuboid");
+                rapier_collider = Collider::cuboid(size.x, size.y, size.z);
+                commands.entity(entity)
+                    .insert(rapier_collider)
+                    .insert(ActiveEvents::COLLISION_EVENTS)  // FIXME: this is just for demo purposes !!!
+                    ;
+            }
+            BlenderCollider::Capsule(a, b, radius) => {
+                info!("generating collider from proxy: capsule");
+                rapier_collider = Collider::capsule(*a, *b, *radius);
+                commands.entity(entity)
+                    .insert(rapier_collider)
+                    .insert(ActiveEvents::COLLISION_EVENTS)  // FIXME: this is just for demo purposes !!!
+                    ;
+            }
+            BlenderCollider::Mesh => {
+                info!("generating collider from proxy: mesh");
+                for (_, collider_mesh) in
+                    Mesh::search_in_children(entity, &children, &meshes, &mesh_handles)
+                {
+                    rapier_collider =
+                        Collider::from_bevy_mesh(collider_mesh, &ComputedColliderShape::TriMesh)
+                            .unwrap();
+                    commands
+                        .entity(entity)
+                        .insert(rapier_collider)
+                        // FIXME: this is just for demo purposes !!!
+                        .insert(
+                            ActiveCollisionTypes::default()
+                                | ActiveCollisionTypes::KINEMATIC_STATIC
+                                | ActiveCollisionTypes::STATIC_STATIC
+                                | ActiveCollisionTypes::DYNAMIC_STATIC,
+                        )
+                        .insert(ActiveEvents::COLLISION_EVENTS);
+                    //  .insert(ActiveEvents::COLLISION_EVENTS)
+                    // break;
+                    // Collider::convex_hull(points)
+                }
+            }
+        }
+    }
+}
+
 impl FromWorld for LocalData {
     fn from_world(world: &mut World) -> Self {
         Self {
@@ -72,7 +163,6 @@ impl FromWorld for LocalData {
         }
     }
 }
-
 
 fn set_up(
     mut commands: Commands,
