@@ -322,10 +322,8 @@ pub enum CardType {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct CardStats {
-    pub toughness: isize,
-    pub power: isize,
-    #[serde(skip)]
-    pub toughness_max: isize,
+    pub cost: isize,
+    pub cooldown: isize,
 }
 
 #[derive(Serialize, Deserialize, Debug, TypePath, Asset, Clone)]
@@ -439,9 +437,7 @@ fn on_spawn_card(
                                 })
                                 .insert(NotShadowCaster);
                             let name_mesh = generate_text_mesh(&card.info.name_zh);
-                            let toughness_mesh =
-                                generate_text_mesh(&card.info.stats.toughness.to_string());
-                            let power_mesh = generate_text_mesh(&card.info.stats.power.to_string());
+                            let cost_mesh = generate_text_mesh(&card.info.stats.cost.to_string());
                             parent
                                 // use this bundle to change the rotation pivot to the center
                                 .spawn(PbrBundle {
@@ -452,31 +448,18 @@ fn on_spawn_card(
                                     ..Default::default()
                                 })
                                 .insert(NotShadowCaster);
-                            [
-                                (power_mesh, 1.0, card.info.stats.power.to_string().len()),
-                                (
-                                    toughness_mesh,
-                                    -1.0,
-                                    card.info.stats.toughness.to_string().len(),
-                                ),
-                            ]
-                            .map(|(mesh, dir, len)| {
-                                parent
-                                    // use this bundle to change the rotation pivot to the center
-                                    .spawn(PbrBundle {
-                                        mesh: meshes.add(mesh),
-                                        material: card_data.card_font_material.clone(),
-                                        // transform mesh so that it is in the center
-                                        transform: Transform::from_xyz(
-                                            -0.4 * dir - len as f32 * 0.04,
-                                            -0.45,
-                                            0.03,
-                                        )
+
+                            parent
+                                // use this bundle to change the rotation pivot to the center
+                                .spawn(PbrBundle {
+                                    mesh: meshes.add(cost_mesh),
+                                    material: card_data.card_font_material.clone(),
+                                    // transform mesh so that it is in the center
+                                    transform: Transform::from_xyz(-0.5, 0.35, 0.03)
                                         .with_scale(Vec3::new(2.0, 2.0, 1.0)),
-                                        ..Default::default()
-                                    })
-                                    .insert(NotShadowCaster);
-                            });
+                                    ..Default::default()
+                                })
+                                .insert(NotShadowCaster);
                         });
                 });
                 match slot_type {
@@ -486,8 +469,8 @@ fn on_spawn_card(
                     SlotType::Hand => {
                         hand.try_put_card_into_hand(entity, &mut slots, &mut card);
                     }
-                    SlotType::Deck => {},
-                    SlotType::Anywhere => {},
+                    SlotType::Deck => {}
+                    SlotType::Anywhere => {}
                 }
             }
         }
