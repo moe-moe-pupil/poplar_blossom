@@ -1,0 +1,12 @@
+[package]
+name = "renet_server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.13.2"}
+bevy_renet = {version = "0.0.11", features = ["serde", "transport"]}
+renet = {version = "0.0.15", default-features=false, features = ["bevy"]}
+serde = "1.0.203"
+bincode = "1.3"
+
