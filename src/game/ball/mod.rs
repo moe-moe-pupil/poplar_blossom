@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::geometry::Collider;
 use bevy_rapier3d::prelude::*;
+use bevy_rapier3d::rapier::dynamics::RigidBodyBuilder;
 
 use super::systemsets::PlayingSets;
 pub struct BallPlugin;
@@ -9,7 +10,8 @@ impl Plugin for BallPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<BallData>()
             .add_systems(Startup, spawn_ball.in_set(PlayingSets::Main))
-            .add_systems(Update, on_spawn_ball.in_set(PlayingSets::Main));
+            .add_systems(Update, on_spawn_ball.in_set(PlayingSets::Main))
+            .add_systems(Update, rotate_to_velocity.in_set(PlayingSets::Main));
     }
 }
 
@@ -27,10 +29,16 @@ impl Ball {
     }
 }
 
+pub fn rotate_to_velocity(mut balls: Query<&mut Velocity, With<Ball>>) {
+    for mut velocity in balls.iter_mut() {
+        velocity.angvel = Vec3::new(velocity.linvel.y, velocity.linvel.x, 0.0)
+    }
+}
+
 pub fn spawn_ball(mut commands: Commands) {
     commands.spawn(BallBundle {
         ball: Ball { power: 1 },
-        transform: Transform::from_xyz(0.0, 0.0, 0.25),
+        transform: Transform::from_xyz(0.0, 0.0, 0.258),
         global_transform: default(),
         collider: Collider::ball(Ball::BALL_DEFAULT_RADIUS),
         visibility: default(),
@@ -72,10 +80,10 @@ pub fn on_spawn_ball(
                 coefficient: 1.0,
                 combine_rule: CoefficientCombineRule::Max,
             })
-            .insert(Velocity {
-                linvel: Vec3::new(0.0, 1.0, 0.0),
-                angvel: Vec3::new(0.0, 0.0, 0.0),
-            });
+            .insert(LockedAxes::TRANSLATION_LOCKED_Z)
+            .insert(AdditionalMassProperties::Mass(1.0))
+            // .insert(Ccd::enabled())
+            .insert(Velocity::linear(Vec3::new(0.0, 1.0, 0.0)));
     }
 }
 
