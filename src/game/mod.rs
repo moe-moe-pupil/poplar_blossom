@@ -27,6 +27,7 @@ use hand::HandPlugin;
 use menu::MenuPlugin;
 use net::NetPlugin;
 use slot::SlotPlugin;
+use player::PlayerPlugin;
 use utils::*;
 
 use crate::{AppState, CardsHandle};
@@ -57,6 +58,7 @@ impl Plugin for GamePlugin {
                 DeckPlugin,
                 MenuPlugin,
                 BallPlugin,
+                PlayerPlugin,
                 // BattlefieldPlugin,
                 ComponentsFromGltfPlugin::default(),
             ))
