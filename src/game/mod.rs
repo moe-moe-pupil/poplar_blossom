@@ -9,6 +9,7 @@ pub mod hand;
 pub mod menu;
 pub mod net;
 pub mod player;
+pub mod resource_pool;
 pub mod slot;
 pub mod systemsets;
 
@@ -26,6 +27,7 @@ use deck::DeckPlugin;
 use hand::HandPlugin;
 use menu::MenuPlugin;
 use net::NetPlugin;
+use resource_pool::ResourcePoolPlugin;
 use slot::SlotPlugin;
 use utils::*;
 
@@ -57,6 +59,7 @@ impl Plugin for GamePlugin {
                 DeckPlugin,
                 MenuPlugin,
                 BallPlugin,
+                ResourcePoolPlugin,
                 // BattlefieldPlugin,
                 ComponentsFromGltfPlugin::default(),
             ))
