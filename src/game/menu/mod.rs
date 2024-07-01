@@ -5,6 +5,7 @@ use crate::AppState;
 pub mod main;
 pub mod room;
 pub mod game_over;
+pub mod effect;
 
 pub struct MenuPlugin;
 
@@ -34,6 +35,7 @@ impl Plugin for MenuPlugin {
             .add_plugins((
                 main::main_menu_plugin,
                 game_over::game_over_menu_plugin,
+                effect::effect_plugin,
             ));
     }
 }

@@ -61,7 +61,7 @@ fn setup(
                 height: Val::Percent(5.0),
                 left: Val::Percent(25.),
                 top: Val::Percent(25.),
-                flex_direction: FlexDirection::Column,
+                flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Start,
                 position_type: PositionType::Absolute,
                 ..default()
@@ -92,6 +92,8 @@ fn setup(
     health_bar_map.0.insert(player_id, health_bar_id);
 }
 
+
+use crate::game::menu::effect::Disappearing;
 fn update_health_bar(
     mut cmds: Commands,
     players: Query<(Entity, &Player)>,
@@ -103,13 +105,53 @@ fn update_health_bar(
         if let Some(health_bar_id) = health_bar_map.0.get(&eid) {
             if let Ok((health_bar_style_e, childs)) = query.get_mut(*health_bar_id) {
                 for &child in childs.iter() {
-                    println!("child: {:?}", child);
                     if let Ok(mut health_bar_style) = query2.get_mut(child) {
                         let health = player.health;
                         let cur_width = health_bar_style.width.clone();
                         let target_width = Val::Percent((health as f32 / Player::DEFAULT_HEALTH as f32) * 100.0);
                         health_bar_style.width = target_width;
+                        if cur_width == target_width {
+                            continue;
+                        }
 
+                        let (cur, mut target) = match (cur_width, target_width) {
+                            (Val::Percent(cur), Val::Percent(target)) => {(cur, target)},
+                            _ => {(0., 0.)}
+                        };
+                        if target <= 0. {
+                            target = 0.;
+                        }
+                        println!("======= cur: {}, target: {}", cur, target);
+
+                        cmds.spawn(NodeBundle {
+                            style: Style {
+                                width: Val::Percent(50.0),
+                                height: Val::Percent(5.0),
+                                left: Val::Percent(25.),
+                                top: Val::Percent(25.),
+                                flex_direction: FlexDirection::Row,
+                                align_items: AlignItems::Start,
+                                position_type: PositionType::Absolute,
+                                ..default()
+                            },
+                            background_color: Color::rgba(0.0, 0.0, 0.0, 0.0).into(),
+                            ..default()
+                        }).with_children(|parent| {
+                            parent.spawn(NodeBundle {
+                                style: Style {
+                                    width: Val::Percent(cur - target),
+                                    height: Val::Percent(80.0),
+                                    top: Val::Percent(10.),
+                                    left: Val::Percent(target),
+                                    ..default()
+                                },
+                                background_color: Color::RED.into(),
+                                ..default()
+                            }).insert(
+                                Disappearing {
+                                    timer: Timer::from_seconds(0.2, TimerMode::Once),
+                            });
+                        });
                     }
                 }
             }
@@ -130,7 +172,7 @@ fn decrease_health(
     mut events: EventReader<EvtBeHurt>,
 ) {
     for evt in events.read() {
-        let mut player = players.get_mut(evt.player_entity).unwrap();
+        let mut player: Mut<Player> = players.get_mut(evt.player_entity).unwrap();
         player.health -= evt.damage;
     }
 }
